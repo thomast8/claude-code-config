@@ -147,33 +147,33 @@ brevity.
 
 **Lane A — Correctness & bugs:**
 ```
-Agent(subagent_type:"general-purpose", name:"lane-a-correctness", description:"Correctness review",
+Agent(subagent_type:"correctness-reviewer", name:"lane-a-correctness", description:"Correctness review",
   run_in_background:true,
   prompt:"<shared prompt body>. Lens: correctness only — logic errors, off-by-ones, edge cases, null/empty handling, race conditions, error-path bugs, incorrect async/await, state-machine holes, behavior regressions.")
 ```
 
 **Lane B — Design & architecture:**
 ```
-Agent(subagent_type:"general-purpose", name:"lane-b-design", description:"Design review",
+Agent(subagent_type:"design-reviewer", name:"lane-b-design", description:"Design review",
   prompt:"<shared prompt body>. Lens: design only — API shape, naming, abstraction boundaries, coupling, dead/speculative code, premature abstractions, duplication, maintainability.")
 ```
 
 **Lane C — Security:**
 ```
-Agent(subagent_type:"general-purpose", name:"lane-c-security", description:"Security review",
+Agent(subagent_type:"security-reviewer", name:"lane-c-security", description:"Security review",
   prompt:"<shared prompt body>. Lens: security only — authn/authz, input validation, injection (SQL, command, path, template), SSRF, secrets in code/logs, unsafe deserialization, crypto misuse, dependency risk, unsafe public writes.")
 ```
 
 **Lane D — Tests & coverage:**
 ```
-Agent(subagent_type:"general-purpose", name:"lane-d-tests", description:"Test review",
+Agent(subagent_type:"pr-test-analyzer", name:"lane-d-tests", description:"Test review",
   prompt:"<shared prompt body>. Lens: tests only — do tests exercise the changed behavior? mocks hiding real integration? missing edge cases? flaky timing? assertions that would pass on a broken implementation?")
 ```
 
 **Lane E — Product/API contract** (add when the diff changes public APIs, response schemas,
 user-visible docs, workflow artifacts, or integration contracts):
 ```
-Agent(subagent_type:"general-purpose", name:"lane-e-product", description:"Product/API contract review",
+Agent(subagent_type:"api-contract-reviewer", name:"lane-e-product", description:"Product/API contract review",
   prompt:"<shared prompt body>. Lens: product/API contract only — changed public APIs, response schemas, workflow artifacts, user-visible docs, validation claims, warning surfaces, ambiguous selection rules, unsupported semantics, integration-contract clarity. Findings are formal review findings grounded in a concrete changed surface, not nice-to-haves. Prefer P2/P3; use P1 only when the gap blocks the PR's stated purpose or causes likely user/data/contract harm.")
 ```
 
@@ -197,7 +197,7 @@ endpoint calls, UI flows, DB checks), treat each as a claim by the author and ru
 
 When fan-out is already warranted and the steps can run in parallel, spawn one focused lane:
 ```
-Agent(subagent_type:"general-purpose", name:"lane-f-manual", description:"PR-body manual verification",
+Agent(subagent_type:"pr-manual-verifier", name:"lane-f-manual", description:"PR-body manual verification",
   prompt:"Review <intent + repo path + diff scope + PR-body manual-verification excerpt + Known Verification Evidence>. Lens: PR-body manual verification only — extract each manual/test-plan step, run it after the smallest safe repo-owned setup, treat each as an author claim: state what it proves, run the exact command/flow, record observed output/state. Ambiguous → smallest reasonable interpretation, say so. Unsafe/destructive/credential-gated/impossible after safe setup → mark blocked with the missing dependency, don't fake it. DO NOT run git fetch or any network git op. Return a step-by-step ledger: step label, claim proved, exact command/flow, observed output/state, status (passed/failed/adjusted/blocked), failure signal. Only raise a code finding when a step failure proves a concrete bug or wrong PR instruction.")
 ```
 For small local reviews, the coordinator may run this ledger directly instead of spawning a lane.
