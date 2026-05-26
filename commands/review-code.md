@@ -122,13 +122,21 @@ Return the full report.
 
 ## Fan out
 
-Dispatch all warranted lanes in a **single assistant message** so the runtime runs them
-concurrently. All run in the **foreground** — every report lands in the same turn, ready to merge.
-Do **not** set `run_in_background: true` on any lane.
+Dispatch the warranted lanes as **background** agents (`run_in_background: true`) in a single
+assistant message. Backgrounding decouples each lane from the coordinator's response stream, so a
+single dropped connection or interrupted turn no longer aborts the whole batch - each lane keeps
+running and the coordinator is re-invoked as reports land, then merges them. Scale the count to the
+change (see Review depth): a heavy foreground fan-out of many lanes on one turn is exactly what a
+single socket drop can take down with it.
+
+For a small risk-scaled review (1-2 lanes), running them foreground in a single message is fine and
+simpler to merge. Every lane snippet below takes `run_in_background: true` even where omitted for
+brevity.
 
 **Lane A — Correctness & bugs:**
 ```
 Agent(subagent_type:"general-purpose", name:"lane-a-correctness", description:"Correctness review",
+  run_in_background:true,
   prompt:"<shared prompt body>. Lens: correctness only — logic errors, off-by-ones, edge cases, null/empty handling, race conditions, error-path bugs, incorrect async/await, state-machine holes, behavior regressions.")
 ```
 
