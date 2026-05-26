@@ -96,12 +96,17 @@ same code under the same rules. Each lane prompt includes:
   reports; DO NOT run `git fetch`/`git pull` or any network git op — local state only.
 - **Evidence gate** — report only concrete issues grounded in changed behavior/contracts; if proof
   is blocked, report the exact blocker and closest evidence instead of looping on workarounds.
-- **Output** — confirmed findings first; per finding: severity, file/line, claim, evidence,
-  expected, observed, failure signal, fix. If none, say so and note residual risk.
+- **Output** — confirmed findings first; per finding: severity (one of P0–P4, per the shared body's
+  scale), file/line, claim, evidence, expected, observed, failure signal, fix. If none, say so and
+  note residual risk.
 
 **Shared prompt body:**
 ```
-Invoke /pr-review-toolkit:review-pr with: <intent + identical diff scope>.
+Review the following change directly through the lens described at the end of this prompt: read the
+diff and the surrounding code yourself. Do NOT delegate to another review skill or sub-agent (no
+/pr-review-toolkit:review-pr, no nested Agent calls); you are the reviewer.
+
+Intent + scope: <intent + identical diff scope>
 
 Known Verification Evidence:
 <coordinator-run commands, working dir, base/head, results, and commands NOT to rerun>
@@ -113,9 +118,16 @@ Rules:
 - Reproduce only concrete candidate findings before listing them; if a check is blocked, record the
   exact blocker and closest evidence.
 
+Severity scale — use these labels exactly, no other vocabulary (no Critical/High/Med/Low, no 0–100 scores):
+- P0 — breaks production/release safety now, broad data loss, or bypasses a critical security control.
+- P1 — blocks the PR's main advertised behavior, high-confidence security/data-loss risk, corrupts persisted state, or will almost certainly fail in normal use.
+- P2 — real bug or contract break, but with a workaround or limited scope.
+- P3 — minor correctness/maintainability/coverage/docs issue; fix it, but it doesn't change core safety or behavior.
+- P4 — nit or optional polish; omit unless exhaustive review was requested.
+
 Output:
-- Confirmed findings first. Per finding: severity, file/line, claim, evidence, expected, observed,
-  failure signal, fix.
+- Confirmed findings first. Per finding: severity (one of P0–P4), file/line, claim, evidence, expected,
+  observed, failure signal, fix.
 - If no confirmed issues, say so and note residual risk.
 Return the full report.
 ```
@@ -234,6 +246,11 @@ high confidence), auto-fix confirmed issues and single-source valid suggestions,
 or judgment calls to the user. Apply the reproduction gate before presenting — list only reproduced
 findings; put unreproduced concerns under **Unverified Risks** with the blocker.
 
+Normalize every finding's severity onto the P0–P4 scale before tabulating. If a lane emitted a
+different vocabulary, remap it: Critical/blocker → P0 or P1, Important/High/Major → P1 or P2,
+Medium → P2, Minor/Low/Nit → P3 or P4; a 90–100 confidence score → P0/P1, 80–89 → P2. The merged
+table uses P0–P4 exclusively — never carry two scales into one table.
+
 **Fix valid suggestions too**, not just bugs. Only skip suggestions that are clearly out of scope
 or need a major design change.
 
@@ -246,6 +263,9 @@ then list **Unverified Risks**.
 
 | Severity | Finding | File | Claim | Repro setup | Expected | Observed | Failure signal | Fix |
 |---|---|---|---|---|---|---|---|---|
+
+The `Severity` column carries only P0–P4 labels (see Severity calibration). A row showing
+Critical/High/Med/Low means a lane's scale wasn't normalized — remap it before presenting.
 
 Keep cells concise; if a command is too long for a cell, summarize it and put the exact command
 under a `Reproduction Details` block below the table.
