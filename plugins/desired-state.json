@@ -1,0 +1,57 @@
+{
+  "marketplaces": {
+    "anthropic-agent-skills": {
+      "source": "github",
+      "repo": "anthropics/skills"
+    },
+    "claude-plugins-official": {
+      "source": "github",
+      "repo": "anthropics/claude-plugins-official"
+    },
+    "claude-code-plugins": {
+      "source": "github",
+      "repo": "anthropics/claude-code"
+    },
+    "openai-codex": {
+      "source": "github",
+      "repo": "openai/codex-plugin-cc"
+    },
+    "@@GH_USER@@-claude-plugins": {
+      "source": "git",
+      "url": "https://github.com/@@GH_USER@@/claude-plugins.git"
+    }
+  },
+  "install": [
+    "document-skills@anthropic-agent-skills",
+    "context7@claude-plugins-official",
+    "playwright@claude-plugins-official",
+    "claude-md-management@claude-plugins-official",
+    "security-guidance@claude-plugins-official",
+    "pyright-lsp@claude-plugins-official",
+    "claude-code-setup@claude-plugins-official",
+    "frontend-design@claude-plugins-official",
+    "pr-review-toolkit@claude-plugins-official",
+    "codex@openai-codex",
+    "find-reviewer@@@GH_USER@@-claude-plugins",
+    "session-title@@@GH_USER@@-claude-plugins"
+  ],
+  "enabled": {
+    "document-skills@anthropic-agent-skills": true,
+    "context7@claude-plugins-official": true,
+    "code-review@claude-plugins-official": false,
+    "commit-commands@claude-plugins-official": false,
+    "playwright@claude-plugins-official": true,
+    "pr-review-toolkit@claude-plugins-official": true,
+    "claude-md-management@claude-plugins-official": true,
+    "feature-dev@claude-plugins-official": false,
+    "code-simplifier@claude-plugins-official": false,
+    "security-guidance@claude-plugins-official": true,
+    "pyright-lsp@claude-plugins-official": true,
+    "claude-code-setup@claude-plugins-official": true,
+    "frontend-design@claude-plugins-official": true,
+    "codex@openai-codex": true,
+    "worktree-toolkit@@@GH_USER@@-claude-plugins": false,
+    "find-reviewer@@@GH_USER@@-claude-plugins": true,
+    "session-title@@@GH_USER@@-claude-plugins": true
+  }
+}

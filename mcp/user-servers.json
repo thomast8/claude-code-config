@@ -1,0 +1,19 @@
+{
+  "mcp-debugger": {
+    "type": "stdio",
+    "command": "npx",
+    "args": [
+      "-y",
+      "@debugmcp/mcp-debugger"
+    ],
+    "env": {}
+  },
+  "gitnexus": {
+    "type": "stdio",
+    "command": "gitnexus",
+    "args": [
+      "mcp"
+    ],
+    "env": {}
+  }
+}

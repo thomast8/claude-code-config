@@ -1,0 +1,171 @@
+{
+  "env": {
+    "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1"
+  },
+  "permissions": {
+    "allow": [
+      "WebSearch",
+      "WebFetch",
+      "Read",
+      "Edit(@@HOME@@/**)",
+      "Edit(.claude/**)",
+      "Edit(/tmp/**)",
+      "Edit(/private/tmp/**)",
+      "Write(@@HOME@@/**)",
+      "Write(.claude/**)",
+      "Write(/tmp/**)",
+      "Write(/private/tmp/**)",
+      "Bash(*)",
+      "mcp__*",
+      "Skill",
+      "Search",
+      "Write(.git/**)",
+      "Edit(.git/**)",
+      "mcp__gitnexus__list_repos",
+      "mcp__gitnexus__context",
+      "mcp__gitnexus__detect_changes"
+    ],
+    "deny": [],
+    "ask": [
+      "Bash(rm -rf:*)",
+      "Bash(rm -r :*)",
+      "Bash(sudo rm:*)",
+      "Bash(git reset --hard:*)",
+      "Bash(git push --force:*)",
+      "Bash(git push -f:*)",
+      "Bash(git clean:*)",
+      "Bash(git branch -D:*)",
+      "Bash(git checkout -- .:*)"
+    ],
+    "defaultMode": "auto",
+    "additionalDirectories": [
+      "@@HOME@@"
+    ]
+  },
+  "model": "claude-opus-4-7[1m]",
+  "hooks": {
+    "PostCompact": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "changed=$(git diff --name-only HEAD 2>/dev/null); if [ -n \"$changed\" ]; then echo \"IMPORTANT: After this compact, reread the following files that have uncommitted changes before continuing work:\"; echo \"$changed\" | while read f; do echo \"- $f\"; done; fi"
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Grep|Glob|Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"/opt/homebrew/lib/node_modules/gitnexus/hooks/claude/gitnexus-hook.cjs\"",
+            "timeout": 8000,
+            "statusMessage": "Enriching with GitNexus graph context..."
+          }
+        ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "@@HOME@@/.claude/hooks/gh-auth-switch.sh",
+            "statusMessage": "Checking GitHub auth..."
+          }
+        ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "@@HOME@@/.claude/hooks/pr-create-nag.sh"
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "INPUT=$(cat); CMD=$(echo \"$INPUT\" | jq -r '.tool_input.command // empty' 2>/dev/null); if echo \"$CMD\" | grep -qE 'git (commit|merge)'; then ROOT=$(git rev-parse --show-toplevel 2>/dev/null); if [ -d \"$ROOT/.gitnexus\" ]; then gitnexus analyze --skip-agents-md \"$ROOT\" &>/dev/null & fi; fi; exit 0"
+          }
+        ]
+      }
+    ],
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "echo '## Current State'; echo \"Branch: $(git branch --show-current 2>/dev/null)\"; echo ''; echo '## Recent commits:'; git log --oneline -5 2>/dev/null; echo ''; changed=$(git diff --stat HEAD 2>/dev/null); if [ -n \"$changed\" ]; then echo '## Uncommitted changes:'; echo \"$changed\"; fi"
+          }
+        ]
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "@@HOME@@/.claude/hooks/gitnexus-init.sh",
+            "statusMessage": "Checking GitNexus index..."
+          }
+        ]
+      }
+    ]
+  },
+  "statusLine": {
+    "type": "command",
+    "command": "bash @@HOME@@/.claude/statusline-command.sh",
+    "refreshInterval": 5
+  },
+  "enabledPlugins": {
+    "document-skills@anthropic-agent-skills": true,
+    "context7@claude-plugins-official": true,
+    "code-review@claude-plugins-official": false,
+    "commit-commands@claude-plugins-official": false,
+    "playwright@claude-plugins-official": true,
+    "pr-review-toolkit@claude-plugins-official": true,
+    "claude-md-management@claude-plugins-official": true,
+    "feature-dev@claude-plugins-official": false,
+    "code-simplifier@claude-plugins-official": false,
+    "security-guidance@claude-plugins-official": true,
+    "pyright-lsp@claude-plugins-official": true,
+    "claude-code-setup@claude-plugins-official": true,
+    "frontend-design@claude-plugins-official": true,
+    "codex@openai-codex": true,
+    "worktree-toolkit@@@GH_USER@@-claude-plugins": false,
+    "find-reviewer@@@GH_USER@@-claude-plugins": true,
+    "session-title@@@GH_USER@@-claude-plugins": true
+  },
+  "extraKnownMarketplaces": {
+    "openai-codex": {
+      "source": {
+        "source": "github",
+        "repo": "openai/codex-plugin-cc"
+      }
+    },
+    "@@GH_USER@@-claude-plugins": {
+      "source": {
+        "source": "git",
+        "url": "https://github.com/@@GH_USER@@/claude-plugins.git"
+      }
+    }
+  },
+  "syntaxHighlightingDisabled": false,
+  "alwaysThinkingEnabled": true,
+  "effortLevel": "high",
+  "voice": {
+    "enabled": true,
+    "mode": "hold"
+  },
+  "autoDreamEnabled": true,
+  "theme": "auto",
+  "remoteControlAtStartup": true,
+  "agentPushNotifEnabled": true,
+  "skipAutoPermissionPrompt": true,
+  "voiceEnabled": true
+}
