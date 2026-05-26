@@ -50,13 +50,8 @@
 - **Worktrees**: from a repo shell run `caw` (PR or new-branch picker -> worktree in `${WARP_WORKTREES_DIR:-~/worktrees}/<repo>/<name>` -> Claude); the `claude_worktree` / `claude_pr` tab configs do the same from the `+` menu. Not in a repo -> the launcher prompts for one (recents first).
 - Check for an open PR on the current branch before creating a new one.
 
-## Commit Authentication
-**Before the first commit in any session**, verify `git config user.email` matches the repo's intended identity. Fix with `git config user.email "<correct>"`. Push hooks only catch mismatches on push, not commit. Account switch: `gh auth switch --user <account>`.
-
-Commits must be signed; hooks verify. Only investigate manually if a hook fails or GitHub shows "Unverified".
-
 ## Commit Messages
-Use Conventional Commit prefixes: `feat:`, `fix:`, `refactor:`, `chore:`, `docs:`, `ci:`, `test:`. Atomic; title = squash-commit title when this is a PR. Explain WHY in the body if not obvious. Never model on Mend/license-update noise. Never bypass hooks (`--no-verify`, `--no-gpg-sign`) unless the user explicitly asks. **Never open a commit message in an external editor during commits or rebases** - use non-interactive forms (`git commit -m`, `git commit -F <file>`, `GIT_EDITOR=true git rebase --continue`), which an agent can't drive interactively.
+Use Conventional Commit prefixes: `feat:`, `fix:`, `refactor:`, `chore:`, `docs:`, `ci:`, `test:`. Atomic; title = squash-commit title when this is a PR. Explain WHY in the body if not obvious. Never model on Mend/license-update noise. Never bypass hooks (`--no-verify`, `--no-gpg-sign`) unless the user explicitly asks. **Never open a commit message in an external editor during commits or rebases** - use non-interactive forms (`git commit -m`, `git commit -F <file>`, `GIT_EDITOR=true git rebase --continue`), which an agent can't drive interactively. Before the first commit of a session, verify `git config user.email` matches the repo's intended identity; commits must be signed (hooks verify).
 
 ## Graphite (optional)
 
