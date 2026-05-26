@@ -43,7 +43,7 @@
 ## Tools and Conventions
 - Working inside Zed (editor); Warp (terminal).
 - Always use `uv` commands over naked python/pip. Use f-strings, not %-formatting (loguru prefers f-strings).
-- Use `gh` for GitHub; the gh account auto-switches by repo owner (see your machine's commit-auth mapping).
+- Use `gh` for GitHub. Pick the account per command by repo owner via token injection - `GH_TOKEN=$(gh auth token -u <account>) gh ...` (same prefix for `git push`). This never touches the shared active account, so concurrent sessions can't flip it out from under each other. The commit-auth mapping says which account each owner uses.
 - **Avoid lint/type suppressions** (`# noqa`, `# type: ignore`, `# nosec`, `# pragma: no cover`). Fix the underlying issue. Only suppress when the tool is genuinely wrong.
 - **Never commit design docs** (`.design/*`) — they are local working documents.
 - When invoking skills, use the exact name from the available skills list.

@@ -71,16 +71,6 @@
         "hooks": [
           {
             "type": "command",
-            "command": "@@HOME@@/.claude/hooks/gh-auth-switch.sh",
-            "statusMessage": "Checking GitHub auth..."
-          }
-        ]
-      },
-      {
-        "matcher": "Bash",
-        "hooks": [
-          {
-            "type": "command",
             "command": "@@HOME@@/.claude/hooks/pr-create-nag.sh"
           }
         ]

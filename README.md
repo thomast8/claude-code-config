@@ -6,7 +6,7 @@ Generic [Claude Code](https://www.claude.com/product/claude-code) configuration 
 
 - `CLAUDE.md` - generic working rules (writing style, dev process, TDD, PR conventions, commit messages, GitNexus, Graphite). No identity, no employer specifics.
 - `settings.json`, `plugins/desired-state.json` - permissions, hooks, model, plugin/marketplace state. A few `@@GH_USER@@` placeholders point at your own plugin marketplace.
-- `hooks/` - `gitnexus-init.sh`, `pr-create-nag.sh`, and `gh-auth-switch.sh` (defaults to your personal account; an optional work map overrides specific orgs).
+- `hooks/` - `gitnexus-init.sh` and `pr-create-nag.sh`.
 - `mcp/user-servers.json` - base MCP servers (gitnexus, mcp-debugger). Employer-specific servers are added by the work layer.
 - `skills/`, `commands/`, `references/`, `scheduled-tasks/`, `statusline-command.sh`.
 
