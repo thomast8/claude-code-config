@@ -128,7 +128,8 @@
     "codex@openai-codex": true,
     "worktree-toolkit@@@GH_USER@@-claude-plugins": false,
     "find-reviewer@@@GH_USER@@-claude-plugins": true,
-    "session-title@@@GH_USER@@-claude-plugins": true
+    "session-title@@@GH_USER@@-claude-plugins": true,
+    "warp@claude-code-warp": true
   },
   "extraKnownMarketplaces": {
     "openai-codex": {
@@ -142,11 +143,17 @@
         "source": "git",
         "url": "https://github.com/@@GH_USER@@/claude-plugins.git"
       }
+    },
+    "claude-code-warp": {
+      "source": {
+        "source": "github",
+        "repo": "warpdotdev/claude-code-warp"
+      }
     }
   },
   "syntaxHighlightingDisabled": false,
   "alwaysThinkingEnabled": true,
-  "effortLevel": "high",
+  "effortLevel": "max",
   "voice": {
     "enabled": true,
     "mode": "hold"
