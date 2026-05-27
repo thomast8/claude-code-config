@@ -180,7 +180,7 @@
   },
   "syntaxHighlightingDisabled": false,
   "alwaysThinkingEnabled": true,
-  "effortLevel": "max",
+  "effortLevel": "xhigh",
   "voice": {
     "enabled": true,
     "mode": "hold"
