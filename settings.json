@@ -136,7 +136,6 @@
     "claude-code-setup@claude-plugins-official": true,
     "frontend-design@claude-plugins-official": true,
     "codex@openai-codex": true,
-    "worktree-toolkit@@@GH_USER@@-claude-plugins": false,
     "find-reviewer@@@GH_USER@@-claude-plugins": true,
     "session-title@@@GH_USER@@-claude-plugins": true,
     "warp@claude-code-warp": true
