@@ -44,6 +44,16 @@
   },
   "model": "opusplan",
   "hooks": {
+    "CwdChanged": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "@@HOME@@/.claude/hooks/warp-cwd-osc7.sh"
+          }
+        ]
+      }
+    ],
     "PostCompact": [
       {
         "hooks": [
