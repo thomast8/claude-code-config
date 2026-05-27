@@ -83,6 +83,30 @@ Reproduction means proving a concrete candidate finding — not re-running the w
 re-proving coordinator-verified checks. A lane reruns a coordinator-verified command only when it
 has a specific finding that file reads or a deterministic trace can't settle.
 
+## Model tier (escalation gate)
+
+Default every lane to Sonnet; escalate only the lanes a risk signal points at. The coordinator
+computes signals during Coordinator setup (reusing the diff-stat, PR metadata, and GitNexus it
+already gathers) and assigns each warranted lane a model before fan-out.
+
+- Baseline: dispatch every lane with `model:"sonnet"`.
+- Escalate a lane to `model:"opus"` per the table below.
+
+Balanced posture — escalate the matched lane on ANY ONE strong signal, or on TWO soft signals:
+
+| Signal | Type | Detection | Escalates |
+|---|---|---|---|
+| Migration / schema code | strong | diff touches `alembic/versions/`, `migrations/`, `*.sql` | A correctness + D tests |
+| Infra / security surface | strong | `gh pr view --json labels` has a security/infra label, OR diff touches `.github/`, `Dockerfile*`, `terraform/`, `k8s/`, or auth/crypto/secret modules | C security |
+| High blast radius | strong | GitNexus `impact` on changed symbols shows many downstream dependents (refresh a stale index first; if GitNexus is unavailable, fall back to import fan-out / reverse-dependency count) | A correctness + B design |
+| Large change | soft | `git diff --stat` ≥ ~20 files or ~500 changed lines | (pairs only) |
+| Low test coverage | soft | source files changed with no/insufficient matching test files in the diff (or repo coverage command shows a low delta) | A correctness + D tests |
+| New concurrency / networking | soft | ADDED lines introduce new sync primitives (`Lock`, `Semaphore`, `threading`, `ContextVar`) or new network clients — match added lines only, NOT mere `async def` surface | A correctness |
+
+Escalation is per-lane and targeted — never flip the whole review to Opus. If no signal fires, the
+full review runs on Sonnet. State the tier decision (which lanes on which model, and why) in the
+coordinator setup summary before fan-out.
+
 ## Lane prompt contract
 
 Every lane gets one shared prompt body plus a short lens-specific suffix, so all lanes review the
@@ -104,7 +128,7 @@ same code under the same rules. Each lane prompt includes:
 ```
 Review the following change directly through the lens described at the end of this prompt: read the
 diff and the surrounding code yourself. Do NOT delegate to another review skill or sub-agent (no
-/pr-review-toolkit:review-pr, no nested Agent calls); you are the reviewer.
+nested Agent calls); you are the reviewer.
 
 Intent + scope: <intent + identical diff scope>
 
@@ -143,37 +167,38 @@ single socket drop can take down with it.
 
 For a small risk-scaled review (1-2 lanes), running them foreground in a single message is fine and
 simpler to merge. Every lane snippet below takes `run_in_background: true` even where omitted for
-brevity.
+brevity. Each lane's model is assigned by the escalation gate — default `model:"sonnet"`, swap to
+`model:"opus"` for escalated lanes. The snippets show the default.
 
 **Lane A — Correctness & bugs:**
 ```
-Agent(subagent_type:"correctness-reviewer", name:"lane-a-correctness", description:"Correctness review",
+Agent(subagent_type:"correctness-reviewer", name:"lane-a-correctness", description:"Correctness review", model:"sonnet",
   run_in_background:true,
   prompt:"<shared prompt body>. Lens: correctness only — logic errors, off-by-ones, edge cases, null/empty handling, race conditions, error-path bugs, incorrect async/await, state-machine holes, behavior regressions.")
 ```
 
 **Lane B — Design & architecture:**
 ```
-Agent(subagent_type:"design-reviewer", name:"lane-b-design", description:"Design review",
+Agent(subagent_type:"design-reviewer", name:"lane-b-design", description:"Design review", model:"sonnet",
   prompt:"<shared prompt body>. Lens: design only — API shape, naming, abstraction boundaries, coupling, dead/speculative code, premature abstractions, duplication, maintainability.")
 ```
 
 **Lane C — Security:**
 ```
-Agent(subagent_type:"security-reviewer", name:"lane-c-security", description:"Security review",
+Agent(subagent_type:"security-reviewer", name:"lane-c-security", description:"Security review", model:"sonnet",
   prompt:"<shared prompt body>. Lens: security only — authn/authz, input validation, injection (SQL, command, path, template), SSRF, secrets in code/logs, unsafe deserialization, crypto misuse, dependency risk, unsafe public writes.")
 ```
 
 **Lane D — Tests & coverage:**
 ```
-Agent(subagent_type:"pr-test-analyzer", name:"lane-d-tests", description:"Test review",
+Agent(subagent_type:"pr-test-analyzer", name:"lane-d-tests", description:"Test review", model:"sonnet",
   prompt:"<shared prompt body>. Lens: tests only — do tests exercise the changed behavior? mocks hiding real integration? missing edge cases? flaky timing? assertions that would pass on a broken implementation?")
 ```
 
 **Lane E — Product/API contract** (add when the diff changes public APIs, response schemas,
 user-visible docs, workflow artifacts, or integration contracts):
 ```
-Agent(subagent_type:"api-contract-reviewer", name:"lane-e-product", description:"Product/API contract review",
+Agent(subagent_type:"api-contract-reviewer", name:"lane-e-product", description:"Product/API contract review", model:"sonnet",
   prompt:"<shared prompt body>. Lens: product/API contract only — changed public APIs, response schemas, workflow artifacts, user-visible docs, validation claims, warning surfaces, ambiguous selection rules, unsupported semantics, integration-contract clarity. Findings are formal review findings grounded in a concrete changed surface, not nice-to-haves. Prefer P2/P3; use P1 only when the gap blocks the PR's stated purpose or causes likely user/data/contract harm.")
 ```
 
@@ -197,7 +222,7 @@ endpoint calls, UI flows, DB checks), treat each as a claim by the author and ru
 
 When fan-out is already warranted and the steps can run in parallel, spawn one focused lane:
 ```
-Agent(subagent_type:"pr-manual-verifier", name:"lane-f-manual", description:"PR-body manual verification",
+Agent(subagent_type:"pr-manual-verifier", name:"lane-f-manual", description:"PR-body manual verification", model:"sonnet",
   prompt:"Review <intent + repo path + diff scope + PR-body manual-verification excerpt + Known Verification Evidence>. Lens: PR-body manual verification only — extract each manual/test-plan step, run it after the smallest safe repo-owned setup, treat each as an author claim: state what it proves, run the exact command/flow, record observed output/state. Ambiguous → smallest reasonable interpretation, say so. Unsafe/destructive/credential-gated/impossible after safe setup → mark blocked with the missing dependency, don't fake it. DO NOT run git fetch or any network git op. Return a step-by-step ledger: step label, claim proved, exact command/flow, observed output/state, status (passed/failed/adjusted/blocked), failure signal. Only raise a code finding when a step failure proves a concrete bug or wrong PR instruction.")
 ```
 For small local reviews, the coordinator may run this ledger directly instead of spawning a lane.

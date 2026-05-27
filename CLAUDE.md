@@ -34,6 +34,7 @@
 - **Don't commit proactively** during ad-hoc work — ask first. When executing a plan, commit at each provisioned checkpoint without asking.
 - **Run fast linters before committing**: `uv run ruff check src/ tests/ && uv run ruff format --check src/ tests/ && uv run mypy src/ tests/`. Catches errors in seconds instead of waiting for the pytest-heavy pre-commit hook.
 - **Code review before finishing**: invoke `/review-code` and fix all issues before considering the work done.
+- **When asked to review code or a PR** — whether reviewing your own local changes or an existing PR — invoke `/review-code`. Don't hand-roll an ad-hoc review. It owns diff-scope resolution, model tiering, lane fan-out, and the reproduction gate. The same lanes run either way; the escalation gate adjusts the model per lane based on what the diff touches.
 - **Before claiming done**, exercise the change end-to-end. Type checks verify correctness, not completeness.
 - **Handling review comments**: decide if valid. Fix if yes; push back with a reason if no. Never capitulate silently. Fix valid suggestions too, not just bugs — skip only when clearly out of scope.
 - **.env files**: never create or edit. Use the Settings class in src/config/settings.py.
