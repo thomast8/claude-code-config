@@ -18,8 +18,7 @@
 - **Always check the PR's actual base branch** with `gh pr view <number> --json baseRefName,headRefName`. Stacked PRs target their parent — `git diff main...HEAD` would include the whole stack. Correct form: `git diff origin/<baseRefName>...origin/<headRefName>`.
 
 ## GitNexus — MANDATORY for codebase exploration
-- **Use GitNexus BEFORE grep, Bash, Read, or the Explore agent** for any question involving symbol location, call chains, module structure, impact, or blast radius. GitNexus is the graph — grep/Read is reinventing it badly. If you catch yourself about to grep for a symbol or fan out with Read/Explore, stop and query GitNexus first.
-- **Preload before any codebase query** (do it now if not yet done this session): `ToolSearch(query="select:mcp__gitnexus__list_repos,mcp__gitnexus__query,mcp__gitnexus__context,mcp__gitnexus__impact,mcp__gitnexus__detect_changes,mcp__gitnexus__rename,mcp__gitnexus__cypher")`. Deferred tools fail with InputValidationError until loaded.
+- **Preload at session start**: `ToolSearch(query="select:mcp__gitnexus__list_repos,mcp__gitnexus__query,mcp__gitnexus__context,mcp__gitnexus__impact,mcp__gitnexus__detect_changes,mcp__gitnexus__rename,mcp__gitnexus__cypher")`. Deferred tools fail with InputValidationError until loaded.
 - **Stale = refresh, not fall back (IMPORTANT)**: `mcp__gitnexus__list_repos` first. If `indexedAt` is behind `git log -1 --format=%H`, run `npx gitnexus analyze --skip-agents-md` and re-check before querying. Do NOT substitute grep/Read/Explore for a stale index — that defeats the point of having the graph.
 - **Fast indexing by default.** Use `gitnexus analyze --skip-agents-md` for stale or missing indexes; reserve `--embeddings` for explicit semantic/vector indexing requests. The global hooks (`~/.claude/hooks/gitnexus-init.sh`, the PostToolUse commit/merge hook in settings.json) use the fast path; run `--embeddings` by hand only when you need semantic `query` backed by fresh vectors.
 - **Multi-repo** needs `repo: "<name>"` on every call.
@@ -35,7 +34,6 @@
 - **Don't commit proactively** during ad-hoc work — ask first. When executing a plan, commit at each provisioned checkpoint without asking.
 - **Run fast linters before committing**: `uv run ruff check src/ tests/ && uv run ruff format --check src/ tests/ && uv run mypy src/ tests/`. Catches errors in seconds instead of waiting for the pytest-heavy pre-commit hook.
 - **Code review before finishing**: invoke `/review-code` and fix all issues before considering the work done.
-- **When asked to review code or a PR** — whether reviewing your own local changes or an existing PR — invoke `/review-code`. Don't hand-roll an ad-hoc review. It owns diff-scope resolution, model tiering, lane fan-out, and the reproduction gate. The same lanes run either way; the escalation gate adjusts the model per lane based on what the diff touches.
 - **Before claiming done**, exercise the change end-to-end. Type checks verify correctness, not completeness.
 - **Handling review comments**: decide if valid. Fix if yes; push back with a reason if no. Never capitulate silently. Fix valid suggestions too, not just bugs — skip only when clearly out of scope.
 - **.env files**: never create or edit. Use the Settings class in src/config/settings.py.
@@ -49,7 +47,7 @@
 - **Avoid lint/type suppressions** (`# noqa`, `# type: ignore`, `# nosec`, `# pragma: no cover`). Fix the underlying issue. Only suppress when the tool is genuinely wrong.
 - **Never commit design docs** (`.design/*`) — they are local working documents.
 - When invoking skills, use the exact name from the available skills list.
-- **Worktrees**: from a repo shell run `caw` (PR or new-branch picker -> worktree in `${WARP_WORKTREES_DIR:-~/worktrees}/<repo>/<name>` -> Claude); the `claude_worktree` / `claude_pr` tab configs do the same from the `+` menu. Not in a repo -> the launcher prompts for one (recents first).
+- **Worktrees**: from a repo shell run `caw` (PR or new-branch picker -> worktree in `${WARP_WORKTREES_DIR:-~/worktrees}/<repo>/<name>` -> Claude); the `claude_worktree` / `claude_pr` tab configs do the same from the `+` menu. Not in a repo -> the launcher prompts for one (recents first). **When you need to start a new feature branch or PR slice mid-session, use `EnterWorktree` (the Claude Code tool) — never `git checkout -b` — so the current session directory's branch stays clean and the new work gets an isolated worktree.**
 - Check for an open PR on the current branch before creating a new one.
 
 ## Commit Messages
@@ -93,3 +91,17 @@ See `references/graphite.md` for the full `gt` ↔ raw-git mapping, diverged-bra
 - **After a PR review, update the PR description** to reflect changes made.
 
 See `references/pr-conventions.md` for the full PR body template, inline-comment GraphQL mechanics, comment-quoting rules, and the branch-rename-with-open-PR sequence.
+
+## Config Location & Backup
+- Live runtime homes (real files, no symlinks, no iCloud): `~/.claude/`, `~/.warp/`, `~/.zshrc`, `~/.config/{git,zed}`, `~/.ssh`. Default model in `~/.claude/settings.json` (`claude-opus-4-7[1m]`, the 1M-context variant).
+- Backup is split across **public workflow repos** + a **private orchestrator** (all account `@@GH_USER@@`):
+  - Public: `warp-claude-workflow` (-> `~/.warp`), `claude-code-config` (-> `~/.claude`, generic), `shell-editor-dotfiles` (zsh + zed), `mac-dev-bootstrap` (bootstrap framework + templated git/ssh + the render engine). Personal identity is rendered in from `profiles/personal/values` via placeholder tokens.
+  - Private orchestrator `warp-dev-environment`: `manifest.toml` (public repos + pinned refs), `profiles/personal/{values,overlay}`, `profiles/work/{values,overlay}`, `setup [--with-work]`.
+- **New Mac**: `ORCH_REPO=@@GH_USER@@/warp-dev-environment /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/@@GH_USER@@/mac-dev-bootstrap/main/bare-mac.sh)" -- --with-work` -> installs Xcode CLT + Homebrew + gh, prompts `gh auth login`, clones the orchestrator, runs `setup --with-work`. Drop the trailing `-- --with-work` for a personal-only machine.
+- **Mirror rule (IMPORTANT)**: generic content is edited in its PUBLIC repo (it is rendered into the live file at setup) - never hand-edit the rendered live copy as the source of truth, or real identity could leak back into a public repo. Personal/work specifics live only in the orchestrator profiles. Runtime state (caches, sessions, auth, `~/.claude.json`, `*.local`, `*.pre-*-backup-*`, `plugins/cache`, `plugins/marketplaces`) is machine-local; never mirror it.
+- Plugin source repos under `~/GitRepos/` (`claude-find-reviewer`, `claude-session-title`), published via the `@@GH_USER@@/claude-plugins` marketplace.
+- Project memory: `~/.claude/projects/<project>/memory/`.
+
+## Commit Authentication
+**Before the first commit in any session**, verify `git config user.email` matches the repo's intended identity. Fix with `git config user.email "<correct>"`. For `gh`/`git push`, select the account inline per command - `GH_TOKEN=$(gh auth token -u <account>) gh ...` - not a global `gh auth switch`. Commits must be signed; hooks verify (investigate only if a hook fails or GitHub shows "Unverified").
+- Default (personal): `@@GIT_EMAIL@@`, account `@@GH_USER@@`, signing key `~/.ssh/@@SIGNING_KEY@@` (reload: `ssh-add ~/.ssh/@@SIGNING_KEY@@`). `ADG-Projects/*` and all non-work repos use this - the git global default.
