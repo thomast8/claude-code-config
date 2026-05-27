@@ -43,12 +43,12 @@ pty="${WARP_CWD_OSC7_TTY:-}"
 if [ -z "$pty" ]; then
   pid=$$
   for _ in $(seq 1 16); do
-    tty_name=$(ps -o tty= -p "$pid" 2>/dev/null | tr -d ' ')
+    tty_name=$(ps -o tty= -p "$pid" 2>/dev/null | tr -d ' ' || true)
     if [ -n "$tty_name" ] && [ "$tty_name" != "??" ]; then
       pty="/dev/$tty_name"
       break
     fi
-    pid=$(ps -o ppid= -p "$pid" 2>/dev/null | tr -d ' ')
+    pid=$(ps -o ppid= -p "$pid" 2>/dev/null | tr -d ' ' || true)
     if [ -z "$pid" ] || [ "$pid" = "0" ] || [ "$pid" = "1" ]; then
       break
     fi
