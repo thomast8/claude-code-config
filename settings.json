@@ -42,7 +42,7 @@
       "@@HOME@@"
     ]
   },
-  "model": "opusplan",
+  "model": "default",
   "hooks": {
     "CwdChanged": [
       {
