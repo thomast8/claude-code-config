@@ -102,7 +102,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "echo '## Current State'; echo \"Branch: $(git branch --show-current 2>/dev/null)\"; echo ''; echo '## Recent commits:'; git log --oneline -5 2>/dev/null; echo ''; changed=$(git diff --stat HEAD 2>/dev/null); if [ -n \"$changed\" ]; then echo '## Uncommitted changes:'; echo \"$changed\"; fi"
+            "command": "@@HOME@@/.claude/hooks/session-state.sh"
           }
         ]
       },
