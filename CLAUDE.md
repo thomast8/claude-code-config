@@ -43,7 +43,7 @@
 ## Tools and Conventions
 - Working inside Zed (editor); Warp (terminal).
 - Always use `uv` commands over naked python/pip. Use f-strings, not %-formatting (loguru prefers f-strings).
-- Use `gh` for GitHub. Pick the account per command by repo owner via token injection - `GH_TOKEN=$(gh auth token -u <account>) gh ...` (same prefix for `git push`). This never touches the shared active account, so concurrent sessions can't flip it out from under each other. The commit-auth mapping says which account each owner uses.
+- Use `gh` for GitHub. Account routing is automatic: the `~/.local/bin/gh` wrapper (source: `mac-dev-bootstrap/bin/gh`, installed by setup ahead of homebrew's gh on PATH) injects the token for the account in `git config wlaunch.ghaccount` (personal default in the global gitconfig; the work includeIf layer overrides it per repo), and that same layer pins a git-credential helper so plain `git fetch`/`git push` over HTTPS route correctly too. An explicit `GH_TOKEN=$(gh auth token -u <account>) gh ...` prefix still works and bypasses the wrapper - use it only as the fallback if routing misbehaves. Never `gh auth switch` (it flips the shared active account under concurrent sessions).
 - **Avoid lint/type suppressions** (`# noqa`, `# type: ignore`, `# nosec`, `# pragma: no cover`). Fix the underlying issue. Only suppress when the tool is genuinely wrong.
 - **Never commit design docs** (`.design/*`) — they are local working documents.
 - When invoking skills, use the exact name from the available skills list.
@@ -65,7 +65,7 @@ See `references/graphite.md` for the full `gt` ↔ raw-git mapping, diverged-bra
 
 ## Code Quality / LLM Model Lookups
 - Before using a library or framework you're unsure of, query the `context7` MCP.
-- **When writing code with LLM model IDs** (OpenAI, Google, etc.), always verify current IDs via `context7` or the provider's API docs — training data is stale. Anthropic: `claude-opus-4-7` (1M context). See `references/llm-models.md` for OpenAI + Gemini IDs and API patterns.
+- **When writing code with LLM model IDs** (OpenAI, Google, etc.), always verify current IDs via `context7` or the provider's API docs — training data is stale. Anthropic: `claude-fable-5` (1M-context variant available). See `references/llm-models.md` for OpenAI + Gemini IDs and API patterns.
 
 ## Deployment (Railway)
 - Prefer Railpack over Dockerfile when possible (zero-config, smaller images).
@@ -93,15 +93,15 @@ See `references/graphite.md` for the full `gt` ↔ raw-git mapping, diverged-bra
 See `references/pr-conventions.md` for the full PR body template, inline-comment GraphQL mechanics, comment-quoting rules, and the branch-rename-with-open-PR sequence.
 
 ## Config Location & Backup
-- Live runtime homes (real files, no symlinks, no iCloud): `~/.claude/`, `~/.warp/`, `~/.zshrc`, `~/.config/{git,zed}`, `~/.ssh`. Default model in `~/.claude/settings.json` (`claude-opus-4-7[1m]`, the 1M-context variant).
+- Live runtime homes (real files, no symlinks, no iCloud): `~/.claude/`, `~/.warp/`, `~/.zshrc`, `~/.config/{git,zed}`, `~/.ssh`. Default model in `~/.claude/settings.json` (`claude-fable-5[1m]`, the 1M-context variant).
 - Backup is split across **public workflow repos** + a **private orchestrator** (all account `@@GH_USER@@`):
-  - Public: `warp-claude-workflow` (-> `~/.warp`), `claude-code-config` (-> `~/.claude`, generic), `shell-editor-dotfiles` (zsh + zed), `mac-dev-bootstrap` (bootstrap framework + templated git/ssh + the render engine). Personal identity is rendered in from `profiles/personal/values` via placeholder tokens.
-  - Private orchestrator `warp-dev-environment`: `manifest.toml` (public repos + pinned refs), `profiles/personal/{values,overlay}`, `profiles/work/{values,overlay}`, `setup [--with-work]`.
+  - Public: `warp-claude-workflow` (-> `~/.warp`), `claude-code-config` (-> `~/.claude`, generic), `shell-editor-dotfiles` (zsh + zed), `mac-dev-bootstrap` (bootstrap framework + templated git/ssh + the `gh` account wrapper + the render engine). Personal identity is rendered in from `profiles/personal/values` via placeholder tokens.
+  - Private orchestrator `warp-dev-environment`: `manifest` (public repos + pinned refs), `profiles/personal/{values,overlay}`, `profiles/work/{values,overlay}`, `setup [--with-work]`.
 - **New Mac**: `ORCH_REPO=@@GH_USER@@/warp-dev-environment /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/@@GH_USER@@/mac-dev-bootstrap/main/bare-mac.sh)" -- --agents=both` -> installs Xcode CLT + Homebrew + gh, prompts `gh auth login`, clones the orchestrator, and runs the personal setup. Add `--with-work` only on a machine that should receive the work overlay.
 - **Mirror rule (IMPORTANT)**: generic content is edited in its PUBLIC repo (it is rendered into the live file at setup) - never hand-edit the rendered live copy as the source of truth, or real identity could leak back into a public repo. Personal/work specifics live only in the orchestrator profiles. Runtime state (caches, sessions, auth, `~/.claude.json`, `*.local`, `*.pre-*-backup-*`, `plugins/cache`, `plugins/marketplaces`) is machine-local; never mirror it.
 - Plugin source repos under `~/GitRepos/` (`claude-find-reviewer`, `claude-session-title`), published via the `@@GH_USER@@/claude-plugins` marketplace.
 - Project memory: `~/.claude/projects/<project>/memory/`.
 
 ## Commit Authentication
-**Before the first commit in any session**, verify `git config user.email` matches the repo's intended identity. Fix with `git config user.email "<correct>"`. For `gh`/`git push`, select the account inline per command - `GH_TOKEN=$(gh auth token -u <account>) gh ...` - not a global `gh auth switch`. Commits must be signed; hooks verify (investigate only if a hook fails or GitHub shows "Unverified").
+**Before the first commit in any session**, verify `git config user.email` matches the repo's intended identity. Fix with `git config user.email "<correct>"`. `gh` and `git push` pick their account automatically via `wlaunch.ghaccount` (the gh wrapper + the per-layer git-credential helper); if routing ever misbehaves, fall back to inline `GH_TOKEN=$(gh auth token -u <account>) ...` - never a global `gh auth switch`. Commits must be signed; hooks verify (investigate only if a hook fails or GitHub shows "Unverified").
 - Default (personal): `@@GIT_EMAIL@@`, account `@@GH_USER@@`, signing key `~/.ssh/@@SIGNING_KEY@@` (reload: `ssh-add ~/.ssh/@@SIGNING_KEY@@`). `ADG-Projects/*` and all non-work repos use this - the git global default.
