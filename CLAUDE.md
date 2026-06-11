@@ -93,7 +93,7 @@ See `references/graphite.md` for the full `gt` ↔ raw-git mapping, diverged-bra
 See `references/pr-conventions.md` for the full PR body template, inline-comment GraphQL mechanics, comment-quoting rules, and the branch-rename-with-open-PR sequence.
 
 ## Config Location & Backup
-- Live runtime homes (real files, no symlinks, no iCloud): `~/.claude/`, `~/.warp/`, `~/.zshrc`, `~/.config/{git,zed}`, `~/.ssh`. Default model in `~/.claude/settings.json` (`claude-fable-5[1m]`, the 1M-context variant).
+- Live runtime homes (real files, no symlinks, no iCloud): `~/.claude/`, `~/.warp/`, `~/.zshrc`, `~/.config/{git,zed}`, `~/.ssh`. The default model is intentionally left unset in `~/.claude/settings.json` so Claude Code picks it - don't pin one here or track it in this file.
 - Backup is split across **public workflow repos** + a **private orchestrator** (all account `@@GH_USER@@`):
   - Public: `warp-claude-workflow` (-> `~/.warp`), `claude-code-config` (-> `~/.claude`, generic), `shell-editor-dotfiles` (zsh + zed), `mac-dev-bootstrap` (bootstrap framework + templated git/ssh + the `gh` account wrapper + the render engine). Personal identity is rendered in from `profiles/personal/values` via placeholder tokens.
   - Private orchestrator `warp-dev-environment`: `manifest` (public repos + pinned refs), `profiles/personal/{values,overlay}`, `profiles/work/{values,overlay}`, `setup [--with-work]`.

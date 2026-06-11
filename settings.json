@@ -42,7 +42,6 @@
       "@@HOME@@"
     ]
   },
-  "model": "default",
   "hooks": {
     "CwdChanged": [
       {
