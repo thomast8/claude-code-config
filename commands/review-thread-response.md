@@ -50,12 +50,37 @@ upstream / still open. Build this table and show it **before posting anything**:
 Keep cells scannable; for a long comment, quote the key part and add a short "Long comments" note
 only if the omitted context could change the decision.
 
-## 3. Approval gate (matches CLAUDE.md PR rules)
+## 3. Brief the user before the gate (teach, don't just propose)
+
+The ledger states the *conclusion*; it does not build *understanding*, and a terse ledger trains the
+user to rubber-stamp. Before the approval gate, write a short plain-language brief so the user can
+interrogate the response and keep their own review instincts sharp — the goal is that they understand
+the issue and the fix **before** approving, not that they consent quickly.
+
+For each thread (or grouped by theme when several share one — say so, e.g. "threads 2–4 are all
+about background-task lifecycle"), write 2–4 sentences of prose covering:
+
+- **What the reviewer actually cared about** — the higher-level concern or class of problem, not a
+  restatement of the line. ("They're worried about shutdown ordering," not "they commented on line 131.")
+- **Why it's a problem** — the concrete failure it would cause, as a scenario the user can picture
+  ("if a write lands a millisecond before SIGTERM, its detached task is still talking to Azure while
+  we close the client, so it errors and half-publishes"). Name the risk even when the reviewer was
+  gentle about it; if you judge a comment low-stakes or wrong, say that plainly and why.
+- **How the fix addresses it** — the approach and the mechanism that closes the gap, plus how you'll
+  prove it ("a regression test that fails if the commit is removed"). If you're rejecting or deferring,
+  explain the reasoning here so the user can push back.
+
+Write it to be read, not skimmed: prose, honest about uncertainty and trade-offs, pitched to someone
+who wants to learn the codebase and the failure modes — not a second copy of the ledger. This brief is
+chat-only; it never goes into a posted reply.
+
+## 4. Approval gate (matches CLAUDE.md PR rules)
 
 Echo the exact proposed reply bodies in chat and **wait for approval** — draft → approval → post →
-readback, never draft-and-post in one turn. If the user revises a body, update only that one.
+readback, never draft-and-post in one turn. The user should be approving with understanding from the
+brief above, not just glancing at the ledger. If the user revises a body, update only that one.
 
-## 4. Post approved replies
+## 5. Post approved replies
 
 Reply to a specific review thread:
 
@@ -70,13 +95,13 @@ mutation($threadId:ID!,$body:String!){
 
 For a general (non-thread) PR comment, use `gh pr comment <n> --body <body>`.
 
-## 5. Read back
+## 6. Read back
 
 Echo the returned `body` and `url` for every posted reply. `gh`/API output is easy to mangle, so the
 readback is the only proof the comment posted as written. If a post fails, stop and report which
 thread failed — do not invent a readback.
 
-## 6. PR description + reviewer handoff
+## 7. PR description + reviewer handoff
 
 - Update the PR body (`gh pr edit <n> --body ...`) when behavior, verification, manual testing,
   docs, schema, or rollout notes changed.
