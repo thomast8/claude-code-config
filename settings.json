@@ -113,6 +113,34 @@
             "statusMessage": "Checking GitNexus index..."
           }
         ]
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "@@HOME@@/.warp/bin/claude-pane-register.sh start"
+          }
+        ]
+      }
+    ],
+    "SessionEnd": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "@@HOME@@/.warp/bin/claude-pane-register.sh end"
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "@@HOME@@/.warp/bin/warp-claude-snapshot.sh --debounce 180"
+          }
+        ]
       }
     ]
   },
@@ -136,7 +164,6 @@
     "frontend-design@claude-plugins-official": true,
     "codex@openai-codex": true,
     "find-reviewer@@@GH_USER@@-claude-plugins": true,
-    "session-title@@@GH_USER@@-claude-plugins": true,
     "warp@claude-code-warp": true
   },
   "extraKnownMarketplaces": {

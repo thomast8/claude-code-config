@@ -99,7 +99,7 @@ See `references/pr-conventions.md` for the full PR body template, inline-comment
   - Private orchestrator `warp-dev-environment`: `manifest` (public repos + pinned refs), `profiles/personal/{values,overlay}`, `profiles/work/{values,overlay}`, `setup [--with-work]`.
 - **New Mac**: `ORCH_REPO=@@GH_USER@@/warp-dev-environment /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/@@GH_USER@@/mac-dev-bootstrap/main/bare-mac.sh)" -- --agents=both` -> installs Xcode CLT + Homebrew + gh, prompts `gh auth login`, clones the orchestrator, and runs the personal setup. Add `--with-work` only on a machine that should receive the work overlay.
 - **Mirror rule (IMPORTANT)**: generic content is edited in its PUBLIC repo (it is rendered into the live file at setup) - never hand-edit the rendered live copy as the source of truth, or real identity could leak back into a public repo. Personal/work specifics live only in the orchestrator profiles. Runtime state (caches, sessions, auth, `~/.claude.json`, `*.local`, `*.pre-*-backup-*`, `plugins/cache`, `plugins/marketplaces`) is machine-local; never mirror it.
-- Plugin source repos under `~/GitRepos/` (`claude-find-reviewer`, `claude-session-title`), published via the `@@GH_USER@@/claude-plugins` marketplace.
+- Plugin source repos under `~/GitRepos/` (`claude-find-reviewer`), published via the `@@GH_USER@@/claude-plugins` marketplace.
 - Project memory: `~/.claude/projects/<project>/memory/`.
 
 ## Commit Authentication

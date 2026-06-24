@@ -31,8 +31,7 @@
     "claude-code-setup@claude-plugins-official",
     "frontend-design@claude-plugins-official",
     "codex@openai-codex",
-    "find-reviewer@@@GH_USER@@-claude-plugins",
-    "session-title@@@GH_USER@@-claude-plugins"
+    "find-reviewer@@@GH_USER@@-claude-plugins"
   ],
   "enabled": {
     "document-skills@anthropic-agent-skills": true,
@@ -48,7 +47,6 @@
     "claude-code-setup@claude-plugins-official": true,
     "frontend-design@claude-plugins-official": true,
     "codex@openai-codex": true,
-    "find-reviewer@@@GH_USER@@-claude-plugins": true,
-    "session-title@@@GH_USER@@-claude-plugins": true
+    "find-reviewer@@@GH_USER@@-claude-plugins": true
   }
 }
