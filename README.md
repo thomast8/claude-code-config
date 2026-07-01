@@ -1,6 +1,6 @@
 # claude-code-config
 
-Generic [Claude Code](https://www.claude.com/product/claude-code) configuration - the reusable parts of `~/.claude`. Personal and work-specific content is kept out and layered in by a private orchestrator at setup time (see [`mac-dev-bootstrap`](https://github.com/thomast8/mac-dev-bootstrap)).
+Generic [Claude Code](https://www.claude.com/product/claude-code) configuration - the reusable parts of `~/.claude`. Personal and work-specific content is kept out and layered in by a private orchestrator at setup time (see [`mac-dev-bootstrap`](https://github.com/thomast8/mac-dev-bootstrap)). The normal private setup installs this alongside Codex config from `Codex-config` when run with `--agents=both`.
 
 ## What's here
 
