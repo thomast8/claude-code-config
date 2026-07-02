@@ -20,10 +20,7 @@
       "Skill",
       "Search",
       "Write(.git/**)",
-      "Edit(.git/**)",
-      "mcp__gitnexus__list_repos",
-      "mcp__gitnexus__context",
-      "mcp__gitnexus__detect_changes"
+      "Edit(.git/**)"
     ],
     "deny": [],
     "ask": [
@@ -35,14 +32,27 @@
       "Bash(git push -f:*)",
       "Bash(git clean:*)",
       "Bash(git branch -D:*)",
-      "Bash(git checkout -- .:*)"
+      "Bash(git checkout -- .:*)",
+      "Bash(git restore .:*)"
     ],
     "defaultMode": "auto",
     "additionalDirectories": [
       "@@HOME@@"
     ]
   },
+  "model": "sonnet",
+  "advisorModel": "fable",
   "hooks": {
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "@@HOME@@/.claude/hooks/plan-mode-fable.sh"
+          }
+        ]
+      }
+    ],
     "CwdChanged": [
       {
         "hooks": [
@@ -65,17 +75,6 @@
     ],
     "PreToolUse": [
       {
-        "matcher": "Grep|Glob|Bash",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "node \"/opt/homebrew/lib/node_modules/gitnexus/hooks/claude/gitnexus-hook.cjs\"",
-            "timeout": 8000,
-            "statusMessage": "Enriching with GitNexus graph context..."
-          }
-        ]
-      },
-      {
         "matcher": "Bash",
         "hooks": [
           {
@@ -87,11 +86,11 @@
     ],
     "PostToolUse": [
       {
-        "matcher": "Bash",
+        "matcher": "EnterPlanMode",
         "hooks": [
           {
             "type": "command",
-            "command": "INPUT=$(cat); CMD=$(echo \"$INPUT\" | jq -r '.tool_input.command // empty' 2>/dev/null); if echo \"$CMD\" | grep -qE 'git (commit|merge)'; then ROOT=$(git rev-parse --show-toplevel 2>/dev/null); if [ -d \"$ROOT/.gitnexus\" ]; then gitnexus analyze --skip-agents-md \"$ROOT\" &>/dev/null & fi; fi; exit 0"
+            "command": "@@HOME@@/.claude/hooks/plan-mode-fable.sh"
           }
         ]
       }
@@ -102,15 +101,6 @@
           {
             "type": "command",
             "command": "@@HOME@@/.claude/hooks/session-state.sh"
-          }
-        ]
-      },
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "@@HOME@@/.claude/hooks/gitnexus-init.sh",
-            "statusMessage": "Checking GitNexus index..."
           }
         ]
       }
@@ -136,7 +126,8 @@
     "frontend-design@claude-plugins-official": true,
     "codex@openai-codex": true,
     "find-reviewer@@@GH_USER@@-claude-plugins": true,
-    "warp@claude-code-warp": true
+    "warp@claude-code-warp": true,
+    "swift-lsp@claude-plugins-official": true
   },
   "extraKnownMarketplaces": {
     "anthropic-agent-skills": {
@@ -176,7 +167,6 @@
       }
     }
   },
-  "syntaxHighlightingDisabled": false,
   "alwaysThinkingEnabled": true,
   "effortLevel": "xhigh",
   "voice": {
@@ -187,6 +177,5 @@
   "theme": "auto",
   "remoteControlAtStartup": true,
   "agentPushNotifEnabled": true,
-  "skipAutoPermissionPrompt": true,
-  "voiceEnabled": true
+  "skipAutoPermissionPrompt": true
 }

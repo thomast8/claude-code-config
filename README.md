@@ -4,11 +4,12 @@ Generic [Claude Code](https://www.claude.com/product/claude-code) configuration 
 
 ## What's here
 
-- `CLAUDE.md` - generic working rules (writing style, dev process, TDD, PR conventions, commit messages, GitNexus, Graphite). No identity, no employer specifics.
-- `settings.json`, `plugins/desired-state.json` - permissions, hooks, model, plugin/marketplace state. A few `@@GH_USER@@` placeholders point at your own plugin marketplace.
-- `hooks/` - `gitnexus-init.sh` and `pr-create-nag.sh`.
-- `mcp/user-servers.json` - base MCP servers (gitnexus, mcp-debugger). Employer-specific servers are added by the work layer.
-- `skills/`, `commands/`, `references/`, `scheduled-tasks/`, `statusline-command.sh`.
+- `CLAUDE.md` - generic working rules (writing style, dev process, TDD, PR conventions, commit messages, Graphite). No identity, no employer specifics.
+- `settings.json`, `plugins/desired-state.json` - permissions, hooks, model + advisor model, plugin/marketplace state. A few `@@GH_USER@@` placeholders point at your own plugin marketplace.
+- `hooks/` - `pr-create-nag.sh`, `session-state.sh`, `warp-cwd-osc7.sh`, and `plan-mode-fable.sh` (delegates plan-mode design to the Fable-pinned `fable-planner` agent).
+- `agents/` - review subagents plus `fable-planner.md` (plan design on Fable while the session stays on the default model).
+- `mcp/user-servers.json` - base MCP servers (mcp-debugger). Employer-specific servers are added by the work layer.
+- `commands/`, `references/`, `scheduled-tasks/`, `statusline-command.sh`.
 
 ## Templating
 
