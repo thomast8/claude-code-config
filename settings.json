@@ -51,6 +51,14 @@
             "command": "@@HOME@@/.claude/hooks/plan-mode-fable.sh"
           }
         ]
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "@@HOME@@/.claude/hooks/caffeinate-active.sh start"
+          }
+        ]
       }
     ],
     "CwdChanged": [
@@ -101,6 +109,16 @@
           {
             "type": "command",
             "command": "@@HOME@@/.claude/hooks/session-state.sh"
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "@@HOME@@/.claude/hooks/caffeinate-active.sh stop"
           }
         ]
       }
