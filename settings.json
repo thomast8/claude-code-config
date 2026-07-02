@@ -77,6 +77,10 @@
           {
             "type": "command",
             "command": "changed=$(git diff --name-only HEAD 2>/dev/null); if [ -n \"$changed\" ]; then echo \"IMPORTANT: After this compact, reread the following files that have uncommitted changes before continuing work:\"; echo \"$changed\" | while read f; do echo \"- $f\"; done; fi"
+          },
+          {
+            "type": "command",
+            "command": "@@HOME@@/.claude/hooks/agent-roster.sh"
           }
         ]
       }
@@ -94,6 +98,15 @@
     ],
     "PostToolUse": [
       {
+        "matcher": "Agent",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "@@HOME@@/.claude/hooks/agent-roster.sh"
+          }
+        ]
+      },
+      {
         "matcher": "EnterPlanMode",
         "hooks": [
           {
@@ -109,6 +122,10 @@
           {
             "type": "command",
             "command": "@@HOME@@/.claude/hooks/session-state.sh"
+          },
+          {
+            "type": "command",
+            "command": "@@HOME@@/.claude/hooks/agent-roster.sh"
           }
         ]
       }
