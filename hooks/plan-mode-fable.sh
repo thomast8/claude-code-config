@@ -14,7 +14,7 @@ INPUT=$(cat)
 EVENT=$(echo "$INPUT" | jq -r '.hook_event_name // empty')
 MODE=$(echo "$INPUT" | jq -r '.permission_mode // empty')
 
-CONTEXT='PLAN MODE MODEL POLICY: The user wants implementation plans designed by the Fable model. Once you have gathered enough context, delegate the design of the plan to the "fable-planner" agent (Agent tool, subagent_type: "fable-planner"), passing the task statement, constraints, and your findings (relevant files, existing patterns). Base the plan you write in the plan file on its output, noting explicitly anywhere you deviate from it. Consult it once per plan: if fable-planner has already been consulted for the current plan and the requirements have not materially changed, do not re-consult it.'
+CONTEXT='PLAN MODE MODEL POLICY: The user wants implementation plans designed by the Fable model. Once you have gathered enough context, delegate the design of the plan to the "fable-planner" agent (Agent tool, subagent_type: "fable-planner"). The prompt you pass is the ONLY context the planner receives, and its tokens are expensive, so write a curated, self-contained brief: the task statement, constraints, file:line references, and the load-bearing code excerpts inlined so the planner rarely needs to re-read files. Quote the user'"'"'s own words where they state requirements (their wording carries intent that paraphrase loses); include nothing from the conversation the plan does not need. Base the plan you write in the plan file on its output, noting explicitly anywhere you deviate from it. Consult it once per plan: if fable-planner has already been consulted for the current plan and the requirements have not materially changed, do not re-consult it.'
 
 case "$EVENT" in
   UserPromptSubmit)
