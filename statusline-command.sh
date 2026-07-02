@@ -54,7 +54,7 @@ if [ -n "$claude_pid" ]; then
     elapsed=$(( $(date +%s) - started ))
     [ "$elapsed" -lt 0 ] && elapsed=0
     printf -v elapsed_fmt '%d:%02d' $((elapsed / 60)) $((elapsed % 60))
-    caffeinate_indicator="  ${YELLOW}☕  ${elapsed_fmt}${RESET}"
+    caffeinate_indicator=" ${YELLOW}☕${elapsed_fmt}${RESET}"
   fi
 fi
 
