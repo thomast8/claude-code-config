@@ -26,4 +26,36 @@ bar=""
 for ((i=0; i<filled; i++)); do bar+="█"; done
 for ((i=0; i<empty; i++)); do bar+="░"; done
 
-echo -e "${CYAN}${model} ${BAR_COLOR}${bar}${RESET} ${CYAN}${pct}%${RESET}"
+# Caffeinate indicator: elapsed time this turn has kept the Mac awake
+# (see hooks/caffeinate-active.sh). Empty once the turn ends and the
+# assertion is released, since there's nothing left to report.
+caffeinate_indicator=""
+pid=$$
+claude_pid=""
+for _ in $(seq 1 16); do
+  pid=$(ps -o ppid= -p "$pid" 2>/dev/null | tr -d ' ' || true)
+  if [ -z "$pid" ] || [ "$pid" = "0" ] || [ "$pid" = "1" ]; then
+    break
+  fi
+  args=$(ps -o command= -p "$pid" 2>/dev/null || true)
+  case "$args" in
+    claude|claude\ *|*/claude|*/claude\ *|*share/claude/versions/*)
+      claude_pid="$pid"
+      break
+      ;;
+  esac
+done
+
+if [ -n "$claude_pid" ]; then
+  pidfile="/tmp/claude-caffeinate-${claude_pid}.pid"
+  caff_pid=$(cat "$pidfile" 2>/dev/null || true)
+  if [ -n "$caff_pid" ] && ps -o comm= -p "$caff_pid" 2>/dev/null | grep -q caffeinate; then
+    started=$(stat -f %m "$pidfile" 2>/dev/null || echo 0)
+    elapsed=$(( $(date +%s) - started ))
+    [ "$elapsed" -lt 0 ] && elapsed=0
+    printf -v elapsed_fmt '%d:%02d' $((elapsed / 60)) $((elapsed % 60))
+    caffeinate_indicator=" ${YELLOW}☕ ${elapsed_fmt}${RESET}"
+  fi
+fi
+
+echo -e "${CYAN}${model} ${BAR_COLOR}${bar}${RESET} ${CYAN}${pct}%${RESET}${caffeinate_indicator}"
