@@ -14,7 +14,16 @@
 #     compaction instead of bloating every prompt.
 #   - PostCompact: output is ignored by the harness, but the hook still runs;
 #     used purely as a side effect to set the marker UserPromptSubmit checks.
-# All four events are wired in settings.json. PostToolUse[Agent] refreshes the
+#   - PreToolUse[Agent]: guardrail, not injection. Denies spawning a second
+#     fable-planner while the roster already holds one (the model must
+#     SendMessage-resume it instead); the deny reason carries the exact resume
+#     call. Bypass by putting "fresh-planner: forced" on its own line in the
+#     Agent prompt (resume failed, or a genuinely unrelated new plan).
+#     Known limitation: the roster only records a spawn after its tool call
+#     completes, so two planner spawns dispatched in the same parallel batch
+#     both pass the guard; the injected plan-mode policy is the only defense
+#     against that ordering.
+# All five events are wired in settings.json. PostToolUse[Agent] refreshes the
 # state file the instant an agent is spawned.
 set -uo pipefail
 
@@ -132,6 +141,29 @@ print_roster() {
 case "$EVENT" in
   UserPromptSubmit) : ;;
   *) refresh_roster ;;
+esac
+
+case "$EVENT" in
+  PreToolUse)
+    # One fable-planner per session: a resumable planner already holds the
+    # brief and its own reasoning, so a fresh spawn re-bills the whole brief
+    # at Fable rates and loses that context. Deny and hand back the resume.
+    subtype=$(printf '%s' "$INPUT" | jq -r '.tool_input.subagent_type // empty' 2>/dev/null || true)
+    [ "$subtype" = "fable-planner" ] || exit 0
+    # The marker must stand on its own line (whitespace-trimmed exact match):
+    # a substring test would be defeated by the prompt merely quoting or
+    # negating the phrase in prose (e.g. an excerpt of this very script).
+    if printf '%s' "$INPUT" | jq -e '(.tool_input.prompt // "") | split("\n") | any(gsub("^[[:space:]]+|[[:space:]]+$"; "") == "fresh-planner: forced")' >/dev/null 2>&1; then
+      exit 0
+    fi
+    [ -s "$STATE_FILE" ] || exit 0
+    existing=$(jq -r '[.[] | select(.agentType == "fable-planner")] | last | .agentId // empty' "$STATE_FILE" 2>/dev/null || true)
+    [ -n "$existing" ] || exit 0
+    existing_desc=$(jq -r --arg id "$existing" '[.[] | select(.agentId == $id)] | last | .description // ""' "$STATE_FILE" 2>/dev/null || true)
+    reason="A fable-planner already exists in this session: agentId ${existing} (\"${existing_desc}\"). Do not spawn a replacement - resume it, it still holds the full brief and its own reasoning. If SendMessage is not loaded yet, load it first with ToolSearch (query \"select:SendMessage\"), then call SendMessage with to: \"${existing}\", summary: \"<5-10 word recap>\", and a message containing only the delta (the user's new words quoted verbatim plus any newly relevant excerpts), asking for the full updated plan back. Spawn a fresh planner ONLY if that resume just failed (agent dead or errored) or this is a genuinely unrelated new planning task - in those cases re-issue this exact Agent call with \"fresh-planner: forced\" added to the prompt on its own line."
+    jq -n --arg r "$reason" '{hookSpecificOutput:{hookEventName:"PreToolUse",permissionDecision:"deny",permissionDecisionReason:$r}}'
+    exit 0
+    ;;
 esac
 
 case "$EVENT" in

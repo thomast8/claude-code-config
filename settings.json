@@ -102,6 +102,15 @@
             "command": "@@HOME@@/.claude/hooks/pr-create-nag.sh"
           }
         ]
+      },
+      {
+        "matcher": "Agent",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "@@HOME@@/.claude/hooks/agent-roster.sh"
+          }
+        ]
       }
     ],
     "PostToolUse": [

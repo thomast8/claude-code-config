@@ -107,6 +107,15 @@ Escalation is per-lane and targeted — never flip the whole review to Opus. If 
 full review runs on Sonnet. State the tier decision (which lanes on which model, and why) in the
 coordinator setup summary before fan-out.
 
+**Fable adjudication (merge-time, not a lane).** Lanes never run on Fable — they are input-heavy
+(whole diff + surrounding code per lane) and that is the worst place to spend the strong-model
+premium. Instead, when ANY strong signal fires, or the user explicitly asked for a deep/exhaustive
+review, plan a single Fable adjudication pass over the merged candidate findings (see Merge). Its
+input is the deduped finding list plus the minimal code excerpts each finding cites — short
+context, high reasoning — so it costs a fraction of a Fable lane while catching the two failure
+modes cheap reviewers actually have: plausible-but-wrong findings and miscalibrated severity.
+Declare in the tier decision whether the adjudicator will run.
+
 ## Lane prompt contract
 
 Every lane gets one shared prompt body plus a short lens-specific suffix, so all lanes review the
@@ -275,6 +284,27 @@ Normalize every finding's severity onto the P0–P4 scale before tabulating. If 
 different vocabulary, remap it: Critical/blocker → P0 or P1, Important/High/Major → P1 or P2,
 Medium → P2, Minor/Low/Nit → P3 or P4; a 90–100 confidence score → P0/P1, 80–89 → P2. The merged
 table uses P0–P4 exclusively — never carry two scales into one table.
+
+**Fable adjudication pass** (when the escalation gate declared it): after dedup and severity
+normalization but before auto-fixing, spawn one adjudicator over the candidate findings:
+
+```
+Agent(subagent_type:"general-purpose", name:"adjudicator", description:"Adjudicate review findings", model:"fable",
+  prompt:"You are the adjudicator for a multi-lane code review. Input: the deduped candidate
+  findings below, each with severity, file/line, claim, evidence, and the cited code excerpt.
+  For each finding return a verdict: CONFIRM (evidence proves it), REJECT (with the specific
+  reason the evidence fails), or RECALIBRATE (right issue, wrong severity — give the corrected
+  P0–P4 and why). Also flag contradictions between findings and any P0/P1-shaped gap the lanes'
+  own evidence exposes but no lane reported. Read the cited files only where the excerpt is
+  insufficient to judge; do not re-review the whole diff. <findings + excerpts + scope>")
+```
+
+Pass it findings and excerpts, not the whole diff — its value is judgment on short context, and its
+tokens are the most expensive in the setup. Apply its verdicts: drop REJECTs (or move to Unverified
+Risks if it says "plausible, unproven"), adopt its severities, and reproduce any new gap it flags
+through the normal reproduction gate before presenting it as a finding. Note in the Verification
+line that the adjudicator ran and what it changed. If it was declared but fails to run, say so —
+don't silently present unadjudicated findings as adjudicated.
 
 **Fix valid suggestions too**, not just bugs. Only skip suggestions that are clearly out of scope
 or need a major design change.
