@@ -8,6 +8,7 @@ CYAN='\033[36m'
 GREEN='\033[32m'
 YELLOW='\033[33m'
 RED='\033[31m'
+GRAY='\033[90m'
 RESET='\033[0m'
 
 # Model (strip trailing context window annotation like " (1M context)")
@@ -26,9 +27,10 @@ bar=""
 for ((i=0; i<filled; i++)); do bar+="█"; done
 for ((i=0; i<empty; i++)); do bar+="░"; done
 
-# Caffeinate indicator: elapsed time this turn has kept the Mac awake
-# (see hooks/caffeinate-active.sh). Empty once the turn ends and the
-# assertion is released, since there's nothing left to report.
+# Caffeinate indicator (see hooks/caffeinate-active.sh):
+#   ☕ m:ss  turn active, caffeinate holding the Mac awake (AC power)
+#   🔋 m:ss  turn active, caffeinate suppressed because on battery
+#   (empty)  no turn in progress
 caffeinate_indicator=""
 pid=$$
 claude_pid=""
@@ -48,13 +50,17 @@ done
 
 if [ -n "$claude_pid" ]; then
   pidfile="/tmp/claude-caffeinate-${claude_pid}.pid"
-  caff_pid=$(cat "$pidfile" 2>/dev/null || true)
-  if [ -n "$caff_pid" ] && ps -o comm= -p "$caff_pid" 2>/dev/null | grep -q caffeinate; then
-    started=$(stat -f %m "$pidfile" 2>/dev/null || echo 0)
-    elapsed=$(( $(date +%s) - started ))
+  caff_state=""
+  [ -f "$pidfile" ] && { read -r caff_state caff_epoch < "$pidfile" 2>/dev/null || caff_state=""; }
+  if [ -n "$caff_state" ] && [ -n "${caff_epoch:-}" ] && [ "$caff_epoch" -gt 0 ] 2>/dev/null; then
+    elapsed=$(( $(date +%s) - caff_epoch ))
     [ "$elapsed" -lt 0 ] && elapsed=0
     printf -v elapsed_fmt '%d:%02d' $((elapsed / 60)) $((elapsed % 60))
-    caffeinate_indicator=" ${YELLOW}☕${elapsed_fmt}${RESET}"
+    if [ "$caff_state" = "battery" ]; then
+      caffeinate_indicator=" ${GRAY}🔋${elapsed_fmt}${RESET}"
+    elif ps -o comm= -p "$caff_state" 2>/dev/null | grep -q caffeinate; then
+      caffeinate_indicator=" ${YELLOW}☕${elapsed_fmt}${RESET}"
+    fi
   fi
 fi
 
