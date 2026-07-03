@@ -9,9 +9,13 @@
 #   - SessionStart: fires on the "compact" source for both auto and manual
 #     compaction, so the roster lands in the fresh post-compaction context.
 #   - UserPromptSubmit: backstop for the "model stopped, user returns after a
-#     compaction" ordering, where the injected text lands post-compaction.
-# Wired to both in settings.json. PostToolUse[Agent] is also wired so the state
-# file refreshes the instant an agent is spawned.
+#     compaction" ordering. Prints only when PostCompact has left a marker for
+#     this session (then clears it), so the roster is injected once per
+#     compaction instead of bloating every prompt.
+#   - PostCompact: output is ignored by the harness, but the hook still runs;
+#     used purely as a side effect to set the marker UserPromptSubmit checks.
+# All four events are wired in settings.json. PostToolUse[Agent] refreshes the
+# state file the instant an agent is spawned.
 set -uo pipefail
 
 INPUT=$(cat)
@@ -29,6 +33,7 @@ esac
 
 STATE_DIR="${HOME}/.claude/agent-rosters"
 STATE_FILE="${STATE_DIR}/${SESSION_ID}.json"
+COMPACT_MARKER="${STATE_DIR}/${SESSION_ID}.compacted"
 
 derive_transcript_path() {
   [ -n "${TRANSCRIPT_PATH:-}" ] && [ -f "$TRANSCRIPT_PATH" ] && return 0
@@ -130,8 +135,22 @@ case "$EVENT" in
 esac
 
 case "$EVENT" in
-  SessionStart|UserPromptSubmit)
+  PostCompact)
+    # Output is ignored for this event; just flag that a compaction happened
+    # so the next UserPromptSubmit re-injects the roster exactly once.
+    mkdir -p "$STATE_DIR" 2>/dev/null && touch "$COMPACT_MARKER" 2>/dev/null
+    ;;
+  SessionStart)
     print_roster
+    # SessionStart fires on the compact source too; consume the marker so the
+    # UserPromptSubmit backstop doesn't inject the same roster a second time.
+    rm -f "$COMPACT_MARKER" 2>/dev/null
+    ;;
+  UserPromptSubmit)
+    if [ -f "$COMPACT_MARKER" ]; then
+      rm -f "$COMPACT_MARKER"
+      print_roster
+    fi
     ;;
 esac
 
