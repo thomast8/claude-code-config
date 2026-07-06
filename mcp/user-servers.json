@@ -18,22 +18,5 @@
       "start"
     ],
     "env": {}
-  },
-  "azure-foundry": {
-    "type": "stdio",
-    "command": "uvx",
-    "args": [
-      "--prerelease=allow",
-      "--with",
-      "mcp<2",
-      "--with",
-      "azure-search-documents<11.6",
-      "--with",
-      "azure-mgmt-cognitiveservices<15",
-      "--from",
-      "git+https://github.com/azure-ai-foundry/mcp-foundry.git",
-      "run-azure-ai-foundry-mcp"
-    ],
-    "env": {}
   }
 }
