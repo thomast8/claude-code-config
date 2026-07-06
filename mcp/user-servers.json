@@ -7,5 +7,16 @@
       "@debugmcp/mcp-debugger"
     ],
     "env": {}
+  },
+  "azure": {
+    "type": "stdio",
+    "command": "npx",
+    "args": [
+      "-y",
+      "@azure/mcp@latest",
+      "server",
+      "start"
+    ],
+    "env": {}
   }
 }

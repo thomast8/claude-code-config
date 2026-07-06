@@ -8,7 +8,7 @@ Generic [Claude Code](https://www.claude.com/product/claude-code) configuration 
 - `settings.json`, `plugins/desired-state.json` - permissions, hooks, model + advisor model, plugin/marketplace state. A few `@@GH_USER@@` placeholders point at your own plugin marketplace.
 - `hooks/` - `pr-create-nag.sh`, `session-state.sh`, `agent-roster.sh` (re-injects resumable sub-agent IDs after compaction and denies duplicate `fable-planner` spawns while one is resumable), `warp-cwd-osc7.sh`, and `plan-mode-fable.sh` (delegates plan-mode design to the Fable-pinned `fable-planner` agent).
 - `agents/` - review subagents plus `fable-planner.md` (plan design on Fable while the session stays on the default model).
-- `mcp/user-servers.json` - base MCP servers (mcp-debugger). Employer-specific servers are added by the work layer.
+- `mcp/user-servers.json` - base MCP servers (mcp-debugger, azure). Employer-specific servers are added by the work layer.
 - `commands/`, `references/`, `scheduled-tasks/`, `statusline-command.sh`.
 
 ## Templating
