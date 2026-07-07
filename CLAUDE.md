@@ -19,6 +19,7 @@
 - **Always check the PR's actual base branch** with `gh pr view <number> --json baseRefName,headRefName`. Stacked PRs target their parent, so `git diff main...HEAD` would include the whole stack. Correct form: `git diff origin/<baseRefName>...origin/<headRefName>`.
 
 ## Development Process
+- **Finish approved plans fully.** Once a multi-phase plan is approved (via ExitPlanMode or explicit go-ahead), execute every phase through to completion without pausing to ask permission at each phase boundary. A brief progress update at a natural checkpoint (finishing a phase, a good commit point) is fine; stopping and waiting is not. Only stop when genuinely blocked: missing credentials/access, a decision only the user can make, or an explicit request to pause.
 - **TDD by default** for new functions, bug fixes, behavior changes. Skip for config, docs, migrations, trivial edits.
 - **Find root cause before fixing.** If three fix attempts fail, stop and question the architecture (the built-in `systematic-debugging` skill).
 - **Design first**: for tasks needing design exploration, sketch the approach in 2-3 sentences and align with the user before coding.
