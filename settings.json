@@ -40,7 +40,7 @@
       "@@HOME@@"
     ]
   },
-  "model": "sonnet",
+  "model": "opusplan",
   "advisorModel": "fable",
   "hooks": {
     "UserPromptSubmit": [
