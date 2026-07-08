@@ -44,6 +44,11 @@
 - **Worktrees**: from a repo shell run `caw` (PR or new-branch picker -> worktree in `${WARP_WORKTREES_DIR:-~/worktrees}/<repo>/<name>` -> Claude); the `claude_worktree` / `claude_pr` tab configs do the same from the `+` menu. Not in a repo -> the launcher prompts for one (recents first). **When you need to start a new feature branch or PR slice mid-session, use `EnterWorktree` (the Claude Code tool), never `git checkout -b`, so the current session directory's branch stays clean and the new work gets an isolated worktree.**
 - Check for an open PR on the current branch before creating a new one.
 
+## Browser Automation
+- **Default to `chrome-devtools-mcp`** (the `chrome-devtools-mcp@claude-plugins-official` plugin) for browser tasks. It launches its own Puppeteer/CDP-driven Chrome instance, needs no extension pairing, and covers the devtools work that comes up most - screenshots, console/network inspection, performance/Lighthouse audits, and isolated no-cookie contexts (`isolatedContext` on `new_page`) for testing things like auth flows without a real session bleeding in.
+- **Only reach for `claude-in-chrome`** when the task genuinely needs *my* real, logged-in browser session - an account only I'm authenticated into, a purchase against a saved card, anything requiring my actual identity/cookies. It requires the Chrome extension installed and paired to my claude.ai account, and it's gated by the stricter purchase/message/form permission rules for exactly that reason.
+- They drive separate browser instances with no shared cookies or tabs - don't expect state from one to carry into the other.
+
 ## Commit Messages
 Use Conventional Commit prefixes: `feat:`, `fix:`, `refactor:`, `chore:`, `docs:`, `ci:`, `test:`. Atomic; title = squash-commit title when this is a PR. Explain WHY in the body if not obvious. Never model on Mend/license-update noise. Never bypass hooks (`--no-verify`, `--no-gpg-sign`) unless the user explicitly asks. **Never open a commit message in an external editor during commits or rebases** - use non-interactive forms (`git commit -m`, `git commit -F <file>`, `GIT_EDITOR=true git rebase --continue`), which an agent can't drive interactively. Before the first commit of a session, verify `git config user.email` matches the repo's intended identity; commits must be signed (hooks verify).
 
