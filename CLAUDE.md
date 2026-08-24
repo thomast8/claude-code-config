@@ -78,7 +78,7 @@ See `references/graphite.md` for the full `gt` ↔ raw-git mapping, diverged-bra
 - Tag commits before creating a release: `git tag vX.Y.Z <sha> && git push origin vX.Y.Z`. Never point releases at branch names (they drift as commits land). Verify with `git log --oneline -1 vX.Y.Z`.
 
 ## PR Management (essentials)
-- **Always open PRs as draft**: `gh pr create --draft`.
+- **Open PRs ready for review**, not as drafts: plain `gh pr create`. Use `--draft` only when I ask for it, or when a project's own convention calls for a placeholder PR.
 - **PR title = squash-commit title**.
 - **PR body** uses Why / What / How / Verification / Notes-Deferred structure (one paragraph each). Reviewer-focused: behavior first, implementation second.
 - **Verification = reviewer-runnable**: the Verification section lists the exact steps a reviewer can copy from the PR branch, smallest real check first (CLI invocation, API call, app flow, DB/state readback); pytest/fixtures are supporting evidence, not the primary steps. Run those exact steps from the pushed branch *before* encoding them, and record observed output/state, not a narrative of what you ran. No opaque heredocs or one-off harnesses; if a step can't run, mark it blocked with the missing dependency rather than faking a pass.
