@@ -1,5 +1,5 @@
 ---
-description: "Address GitHub PR review comments with a paired original-comment/proposed-reply ledger, standing authorisation for verified fixes, otherwise approval before posting, gh-based posting + readback, PR description updates, and reviewer re-requesting. Use when the user says 'address the review comments', 'reply to the reviewers', 'respond to PR feedback', 'send the PR back to reviewers', or '/review-thread-response'."
+description: "Address GitHub PR review comments with a compact evidence ledger when useful, standing authorisation for verified fixes, otherwise approval before posting, gh-based posting + readback, PR description updates, and reviewer re-requesting. Use when the user says 'address the review comments', 'reply to the reviewers', 'respond to PR feedback', 'send the PR back to reviewers', or '/review-thread-response'."
 ---
 
 # Review Thread Response
@@ -75,13 +75,23 @@ mutation($threadId:ID!,$body:String!){
 }' -F threadId=<thread-id> -f body=<approved body>
 ```
 
-For a general (non-thread) PR comment, use `gh pr comment <n> --body <body>`.
+For an implemented and verified fix, resolve only that thread after the reply succeeds:
+
+```bash
+gh api graphql -f query='
+mutation($threadId:ID!){
+  resolveReviewThread(input:{threadId:$threadId}){ thread{ id isResolved } }
+}' -F threadId=<thread-id>
+```
+
+For a general (non-thread) PR comment, use `gh pr comment <n> --body-file <reply-file>`.
 
 ## 6. Read back
 
 Echo the returned `body` and `url` for every posted reply. `gh`/API output is easy to mangle, so the
 readback is the only proof the comment posted as written. If a post fails, stop and report which
-thread failed — do not invent a readback.
+thread failed — do not invent a readback. Re-run the review-thread query from section 1 and verify
+that the exact thread has `isResolved=true`. A posted reply alone is not a resolved thread.
 
 ## 7. PR description + reviewer handoff
 

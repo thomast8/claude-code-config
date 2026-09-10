@@ -1,5 +1,5 @@
 ---
-description: "Run multi-lane Claude code review (correctness, design, security, tests, plus product/API contract and PR-body manual verification when applicable) in parallel before PR."
+description: "Run a bounded review after implementation and tests, selecting only the lenses justified by the change."
 ---
 
 # Review Code
@@ -24,8 +24,8 @@ Scale the review to the risk and size of the change — don't fan out on trivial
 | Medium / non-trivial | The warranted subset — usually correctness + tests, adding design/security when relevant |
 | Risky, broad refactor, release/publish, data-loss, auth work, explicit deep review | Warranted lanes covering the identified risks |
 
-For PR reviews, deep reviews, and changes touching public APIs, schemas, user-visible workflow
-artifacts, docs, or integration contracts, include the product/API contract lane (E). Product
+For changes touching public APIs, schemas, user-visible workflow artifacts or integration
+contracts, or an explicitly requested deep contract review, include the product/API contract lane (E). Product
 findings are formal review findings grounded in a concrete changed surface, held to the same
 severity and evidence bar as the other lanes — not private follow-up notes.
 
@@ -127,7 +127,7 @@ same code under the same rules. Each lane prompt includes:
   reports; DO NOT run `git fetch`/`git pull` or any network git op — local state only.
 - **Evidence gate** — report only concrete issues grounded in changed behavior/contracts; if proof
   is blocked, report the exact blocker and closest evidence instead of looping on workarounds.
-- **Output** — confirmed findings first; per finding: severity (one of P0–P4, per the shared body's
+- **Output** — confirmed findings first; per finding: confidence (confirmed or unverified) separately from severity (one of P0–P4, per the shared body's
   scale), file/line, claim, evidence, expected, observed, failure signal, fix. If none, say so and
   note residual risk.
 
@@ -157,7 +157,7 @@ Severity scale — use these labels exactly, no other vocabulary (no Critical/Hi
 - P4 — nit or optional polish; omit unless exhaustive review was requested.
 
 Output:
-- Confirmed findings first. Per finding: severity (one of P0–P4), file/line, claim, evidence, expected,
+- Confirmed findings first. Per finding: confidence (confirmed or unverified), severity (one of P0–P4), file/line, claim, evidence, expected,
   observed, failure signal, fix.
 - If no confirmed issues, say so and note residual risk.
 Return the full report.
@@ -282,7 +282,7 @@ different vocabulary, remap it: Critical/blocker → P0 or P1, Important/High/Ma
 Medium → P2, Minor/Low/Nit → P3 or P4 only after checking the actual consequence against the severity rubric. Never map a confidence score to severity. Confidence describes evidence strength; impact determines P0–P4. Keep confidence in a separate field.
 
 **Fable adjudication pass** (when the escalation gate declared it): after dedup and severity
-normalization but before auto-fixing, spawn one adjudicator over the candidate findings:
+normalization but before reporting findings or applying authorised fixes, spawn one adjudicator over the candidate findings:
 
 ```
 Agent(subagent_type:"general-purpose", name:"adjudicator", description:"Adjudicate review findings", model:"fable",
@@ -311,8 +311,8 @@ run (or coordinator-supplied evidence relied on) and their results. Include the 
 Verification` ledger when Lane F ran. If nothing is confirmed, say "No confirmed findings" first,
 then list **Unverified Risks**.
 
-| Severity | Finding | File | Claim | Repro setup | Expected | Observed | Failure signal | Fix |
-|---|---|---|---|---|---|---|---|---|
+| Severity | Confidence | Finding | File | Claim | Repro setup | Expected | Observed | Failure signal | Fix |
+|---|---|---|---|---|---|---|---|---|---|
 
 The `Severity` column carries only P0–P4 labels (see Severity calibration). A row showing
 Critical/High/Med/Low means a lane's scale wasn't normalized — remap it before presenting.
