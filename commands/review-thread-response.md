@@ -1,11 +1,10 @@
 ---
-description: "Address GitHub PR review comments with a paired original-comment/proposed-reply ledger, explicit approval before posting, gh-based posting + readback, PR description updates, and reviewer re-requesting. Use when the user says 'address the review comments', 'reply to the reviewers', 'respond to PR feedback', 'send the PR back to reviewers', or '/review-thread-response'."
+description: "Address GitHub PR review comments with a compact evidence ledger when useful, standing authorisation for verified fixes, otherwise approval before posting, gh-based posting + readback, PR description updates, and reviewer re-requesting. Use when the user says 'address the review comments', 'reply to the reviewers', 'respond to PR feedback', 'send the PR back to reviewers', or '/review-thread-response'."
 ---
 
 # Review Thread Response
 
-Respond to PR review comments through a visible ledger and an explicit approval gate, then post
-and read back via `gh`. Transport is `gh` + the GitHub GraphQL API (CC has no provider plugin).
+Respond to PR review comments using evidence and existing authorisation, then post and read back via `gh`. Transport is `gh` + the GitHub GraphQL API (CC has no provider plugin).
 
 ## When to run
 
@@ -41,7 +40,7 @@ Focus on threads where `isResolved=false`. The thread `id` (a node ID) is what y
 
 For each open thread, read the cited `path:line` and surrounding code, related commits, and stacked
 context, so you can say why the comment matters and whether it is fixed / invalid / already handled
-upstream / still open. Build this table and show it **before posting anything**:
+upstream / still open. For several comments, use a compact ledger; for one verified fix, a concise evidence-backed summary is enough. This is a reporting aid, not another approval gate:
 
 | Thread | Original comment | Code-context reasoning | Status | Evidence | Proposed reply |
 |---|---|---|---|---|---|
@@ -50,35 +49,18 @@ upstream / still open. Build this table and show it **before posting anything**:
 Keep cells scannable; for a long comment, quote the key part and add a short "Long comments" note
 only if the omitted context could change the decision.
 
-## 3. Brief the user before the gate (teach, don't just propose)
+## 3. Explain consequential decisions briefly
 
-The ledger states the *conclusion*; it does not build *understanding*, and a terse ledger trains the
-user to rubber-stamp. Before the approval gate, write a short plain-language brief so the user can
-interrogate the response and keep their own review instincts sharp — the goal is that they understand
-the issue and the fix **before** approving, not that they consent quickly.
+Lead with the fix and evidence. Explain disputed comments or unresolved risks in plain language;
+do not require a tutorial or a second approval ceremony for every verified fix.
 
-For each thread (or grouped by theme when several share one — say so, e.g. "threads 2–4 are all
-about background-task lifecycle"), write 2–4 sentences of prose covering:
+## 4. Apply existing authorisation
 
-- **What the reviewer actually cared about** — the higher-level concern or class of problem, not a
-  restatement of the line. ("They're worried about shutdown ordering," not "they commented on line 131.")
-- **Why it's a problem** — the concrete failure it would cause, as a scenario the user can picture
-  ("if a write lands a millisecond before SIGTERM, its detached task is still talking to Azure while
-  we close the client, so it errors and half-publishes"). Name the risk even when the reviewer was
-  gentle about it; if you judge a comment low-stakes or wrong, say that plainly and why.
-- **How the fix addresses it** — the approach and the mechanism that closes the gap, plus how you'll
-  prove it ("a regression test that fails if the commit is removed"). If you're rejecting or deferring,
-  explain the reasoning here so the user can push back.
-
-Write it to be read, not skimmed: prose, honest about uncertainty and trade-offs, pitched to someone
-who wants to learn the codebase and the failure modes — not a second copy of the ledger. This brief is
-chat-only; it never goes into a posted reply.
-
-## 4. Approval gate (matches CLAUDE.md PR rules)
-
-Echo the exact proposed reply bodies in chat and **wait for approval** — draft → approval → post →
-readback, never draft-and-post in one turn. The user should be approving with understanding from the
-brief above, not just glancing at the ledger. If the user revises a body, update only that one.
+An implemented and verified fix is standing authorisation to reply concisely and resolve that
+exact review thread. Continue without asking again, then read back the reply and resolution.
+For an unfixed, disputed or unverified comment, keep it unresolved. Check whether the user has
+already authorised the proposed reply; ask only if that authority is missing. A general code
+implementation request is not permission to send unrelated messages.
 
 ## 5. Post approved replies
 
@@ -93,13 +75,23 @@ mutation($threadId:ID!,$body:String!){
 }' -F threadId=<thread-id> -f body=<approved body>
 ```
 
-For a general (non-thread) PR comment, use `gh pr comment <n> --body <body>`.
+For an implemented and verified fix, resolve only that thread after the reply succeeds:
+
+```bash
+gh api graphql -f query='
+mutation($threadId:ID!){
+  resolveReviewThread(input:{threadId:$threadId}){ thread{ id isResolved } }
+}' -F threadId=<thread-id>
+```
+
+For a general (non-thread) PR comment, use `gh pr comment <n> --body-file <reply-file>`.
 
 ## 6. Read back
 
 Echo the returned `body` and `url` for every posted reply. `gh`/API output is easy to mangle, so the
 readback is the only proof the comment posted as written. If a post fails, stop and report which
-thread failed — do not invent a readback.
+thread failed — do not invent a readback. Re-run the review-thread query from section 1 and verify
+that the exact thread has `isResolved=true`. A posted reply alone is not a resolved thread.
 
 ## 7. PR description + reviewer handoff
 
@@ -108,7 +100,7 @@ thread failed — do not invent a readback.
 - Re-request reviewers who left blocking comments: `gh pr edit <n> --add-reviewer <login>` (or the
   `requestReviews` GraphQL mutation). If the PR `isDraft` and the user didn't ask to mark it ready,
   report that instead of readying it.
-- **Never resolve threads authored by the PR author** — reply, but leave resolution to the reviewer.
+- Resolve only the exact thread covered by an implemented, verified fix and standing authorisation; read back `isResolved`. Leave disputed or unverified threads open.
 
 ## Reply style
 

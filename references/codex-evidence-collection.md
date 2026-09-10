@@ -1,83 +1,20 @@
-# Cross-Model Evidence Collection Protocol
+# Combining review evidence
 
-Reference document for merging review findings from Claude and Codex agents into a unified report.
+A review is read-only unless the user authorises fixes. Assess each claim against the actual diff, acceptance criteria and repository guidance. Agreement between models is corroboration, not proof.
 
-## Finding Schema
+## Finding record
 
-Each finding from either lane must be normalized to:
+Record file and line, impact severity (P0–P4), confidence/evidence strength, concrete failure scenario, reproduction or deterministic trace, scope and proposed fix. Never infer severity from confidence or the number of reviewers repeating a claim.
 
-- **file**: Path relative to repo root
-- **line**: Line number or range (e.g., `42` or `42-48`)
-- **severity**: `critical`, `important`, or `suggestion`
-- **category**: One of: `bugs-and-conventions`, `error-handling`, `simplification`, `comments`, `test-coverage`, `type-design` (`bugs-and-conventions` is the catch-all for the code-reviewer agent, covering bugs, security, and CLAUDE.md convention violations)
-- **source**: `claude` or `codex`
-- **agent**: The specific agent name (e.g., `code-reviewer`, `silent-failure-hunter`)
-- **description**: What the issue is and why it matters
-- **fix**: Concrete recommendation
+Merge duplicate reports only when they identify the same underlying failure, not merely nearby lines. Keep contradictory evidence explicit and investigate it before asking the user to arbitrate. Put plausible unreproduced concerns under Unverified, with the missing evidence.
 
-## Deduplication Rules
+## Action
 
-Match findings across lanes using fuzzy semantic judgment, not exact equality:
+- Confirmed in-scope defect or acceptance blocker: fix when implementation is authorised, then verify the fix.
+- Material security, permissions or data-integrity risk: state impact and evidence; do not hide a release blocker to meet a review cap.
+- Adjacent improvement, style suggestion or pre-existing issue: record separately; do not expand the patch automatically.
+- Read-only review: report findings without modifying code, even if every reviewer agrees.
 
-1. **Same file** - both findings reference the same file path
-2. **Overlapping lines** - line numbers within ~5 lines of each other
-3. **Same concern category** - both address the same class of issue
+After implementation and in-scope tests are green, run one bounded review and at most one remediation pass. Use targeted checks for the fixes; do not launch repeated full reviews until consensus. Report unresolved blockers. Output confirmed bugs first, then refactor debris, then optional nits when requested. State reviewer failures and verification limits without claiming an exhaustive clean bill of health.
 
-If all three match, merge into a single finding tagged **"confirmed by both"**.
-
-Claude and Codex will describe the same issue differently and may cite slightly different line numbers. Use your judgment. When uncertain, keep them separate rather than incorrectly merging.
-
-## Action Matrix
-
-| Scenario | Action |
-|---|---|
-| Both agree, critical or important | Auto-fix immediately |
-| Both agree, suggestion | Auto-fix |
-| One flags critical, other silent | Present to user with both perspectives |
-| One flags important, other silent | Present to user (the other model may have had good reason to skip it) |
-| One flags suggestion, other silent | Auto-fix (low risk) |
-| Direct conflict (opposing recommendations) | Present both, user decides |
-
-## Unified Output Format
-
-Present findings grouped by resolution status:
-
-```
-## Review Summary (N Claude + M Codex agents completed)
-
-### Confirmed by Both (auto-fixed)
-- `file:line` - [category] description
-  Claude: "..."
-  Codex: "..."
-
-### Single-Source (auto-fixed)
-- `file:line` - [category] [source] description
-
-### Conflicts (your decision needed)
-- `file:line` - [category]
-  Claude (agent): "recommendation A"
-  Codex: "recommendation B"
-
-### Strengths (from either lane)
-- Positive observations and well-done patterns noted by reviewers
-
-### Agent Failures (if any)
-- [agent-name]: timed out / failed (review proceeded without this agent)
-```
-
-Positive observations and strengths reported by either lane should be preserved in the report. They do not go through the deduplication/action matrix.
-
-If no Codex agents completed (graceful degradation), skip the cross-model sections and present Claude findings directly, same as the existing single-lane flow.
-
-## Suppression Scan
-
-After processing all findings, scan the full diff once for lint/type suppressions:
-
-- `# noqa`
-- `# type: ignore`
-- `# nosec`
-- `# pragma: no cover`
-- `// @ts-ignore`
-- `// eslint-disable`
-
-Each suppression should be removed by fixing the underlying issue. Only keep a suppression if the tool is genuinely wrong and there is no reasonable fix.
+Review suppressions in the actual diff against the repository's quality policy. Do not add or weaken suppressions, baselines or exceptions without the required authorisation.

@@ -94,10 +94,15 @@ Correct sequence:
 3. Create a new PR with the same title/body/reviewers (the old PR can't be retargeted)
 4. Only then delete the old remote: `git push origin --delete old-name`
 
-## Why echo comment bodies in chat
+## Comment readback
 
-`gh pr comment`, `gh pr review`, and `addPullRequestReviewThreadReply` all return a URL rather than showing the posted text. Without echoing the body in chat (as a fenced block or blockquote), the user can't catch a bad reply before it's live. Applies to every comment call.
+Read back the exact posted body and URL. Preview a proposed reply when approval is still needed; an implemented, verified fix already has standing authorisation.
 
 ## Rules for PR body revisions
 
 When making changes to a PR based on feedback, update the PR description to reflect the changes. Update affected documentation (README, design docs) when changing features. Don't leave stale descriptions that no longer match the implementation.
+
+
+## Reply authorisation
+
+An implemented and verified review fix carries standing authorisation to reply concisely and resolve its exact thread. Read back the published reply and resolution. Do not ask again merely because a reply is public. For disputed, unfixed or unverified comments, keep the thread open and obtain any missing authority before posting. Existing authorisation takes precedence over a generic preview-and-wait sequence.

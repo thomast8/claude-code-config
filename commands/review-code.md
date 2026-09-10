@@ -1,12 +1,10 @@
 ---
-description: "Run multi-lane Claude code review (correctness, design, security, tests, plus product/API contract and PR-body manual verification when applicable) in parallel before PR."
+description: "Run a bounded review after implementation and tests, selecting only the lenses justified by the change."
 ---
 
 # Review Code
 
-Reviewers with distinct lenses catch bugs any single pass misses. Run this before any PR. Lanes
-A-D always run; add lanes E and F when they apply (see Fan out). Scale the review to the change
-(see Review depth) — don't fan out on trivial edits.
+Run one bounded review after implementation and in-scope tests, immediately before the first feature-ready push. A read-only review request does not authorise fixes. Select only the lenses justified by the change; no lane is mandatory for every PR. Use local self-review for trivial changes.
 
 ## When to run
 
@@ -24,10 +22,10 @@ Scale the review to the risk and size of the change — don't fan out on trivial
 | Small low-risk code with tests | Local review through the lenses; spawn a lane only if something looks risky |
 | Small safety-sensitive (auth, shell, path, writes, permissions) | One focused lane for the primary risk (usually security or correctness) |
 | Medium / non-trivial | The warranted subset — usually correctness + tests, adding design/security when relevant |
-| Risky, broad refactor, release/publish, data-loss, auth work, PR review, or explicit deep review | Full lane set |
+| Risky, broad refactor, release/publish, data-loss, auth work, explicit deep review | Warranted lanes covering the identified risks |
 
-For PR reviews, deep reviews, and changes touching public APIs, schemas, user-visible workflow
-artifacts, docs, or integration contracts, include the product/API contract lane (E). Product
+For changes touching public APIs, schemas, user-visible workflow artifacts or integration
+contracts, or an explicitly requested deep contract review, include the product/API contract lane (E). Product
 findings are formal review findings grounded in a concrete changed surface, held to the same
 severity and evidence bar as the other lanes — not private follow-up notes.
 
@@ -86,7 +84,7 @@ has a specific finding that file reads or a deterministic trace can't settle.
 ## Model tier (escalation gate)
 
 Default every lane to Sonnet; escalate only the lanes a risk signal points at. The coordinator
-computes signals during Coordinator setup (reusing the diff-stat, PR metadata, and GitNexus it
+computes signals during Coordinator setup (reusing the diff-stat, PR metadata, and repository dependency evidence it
 already gathers) and assigns each warranted lane a model before fan-out.
 
 - Baseline: dispatch every lane with `model:"sonnet"`.
@@ -98,7 +96,7 @@ Balanced posture — escalate the matched lane on ANY ONE strong signal, or on T
 |---|---|---|---|
 | Migration / schema code | strong | diff touches `alembic/versions/`, `migrations/`, `*.sql` | A correctness + D tests |
 | Infra / security surface | strong | `gh pr view --json labels` has a security/infra label, OR diff touches `.github/`, `Dockerfile*`, `terraform/`, `k8s/`, or auth/crypto/secret modules | C security |
-| High blast radius | strong | GitNexus `impact` on changed symbols shows many downstream dependents (refresh a stale index first; if GitNexus is unavailable, fall back to import fan-out / reverse-dependency count) | A correctness + B design |
+| High blast radius | strong | The changed symbols have many downstream dependents, established from imports, callers and repository tooling | A correctness + B design |
 | Large change | soft | `git diff --stat` ≥ ~20 files or ~500 changed lines | (pairs only) |
 | Low test coverage | soft | source files changed with no/insufficient matching test files in the diff (or repo coverage command shows a low delta) | A correctness + D tests |
 | New concurrency / networking | soft | ADDED lines introduce new sync primitives (`Lock`, `Semaphore`, `threading`, `ContextVar`) or new network clients — match added lines only, NOT mere `async def` surface | A correctness |
@@ -129,7 +127,7 @@ same code under the same rules. Each lane prompt includes:
   reports; DO NOT run `git fetch`/`git pull` or any network git op — local state only.
 - **Evidence gate** — report only concrete issues grounded in changed behavior/contracts; if proof
   is blocked, report the exact blocker and closest evidence instead of looping on workarounds.
-- **Output** — confirmed findings first; per finding: severity (one of P0–P4, per the shared body's
+- **Output** — confirmed findings first; per finding: confidence (confirmed or unverified) separately from severity (one of P0–P4, per the shared body's
   scale), file/line, claim, evidence, expected, observed, failure signal, fix. If none, say so and
   note residual risk.
 
@@ -159,7 +157,7 @@ Severity scale — use these labels exactly, no other vocabulary (no Critical/Hi
 - P4 — nit or optional polish; omit unless exhaustive review was requested.
 
 Output:
-- Confirmed findings first. Per finding: severity (one of P0–P4), file/line, claim, evidence, expected,
+- Confirmed findings first. Per finding: confidence (confirmed or unverified), severity (one of P0–P4), file/line, claim, evidence, expected,
   observed, failure signal, fix.
 - If no confirmed issues, say so and note residual risk.
 Return the full report.
@@ -276,17 +274,15 @@ reproduced behavioral failure is usually `P3` or an Unverified Risk, not `P2`.
 
 Use the Cross-Model Evidence Collection Protocol in `references/codex-evidence-collection.md`:
 normalize each lane's report, dedupe findings across lanes (same issue raised by multiple agents =
-high confidence), auto-fix confirmed issues and single-source valid suggestions, present conflicts
-or judgment calls to the user. Apply the reproduction gate before presenting — list only reproduced
+corroboration only, not independent proof), report confirmed findings, and distinguish unresolved judgement calls. A review request is read-only unless fixes are authorised; during authorised implementation fix only confirmed in-scope defects and acceptance blockers. Apply the reproduction gate before presenting — list only reproduced
 findings; put unreproduced concerns under **Unverified Risks** with the blocker.
 
 Normalize every finding's severity onto the P0–P4 scale before tabulating. If a lane emitted a
 different vocabulary, remap it: Critical/blocker → P0 or P1, Important/High/Major → P1 or P2,
-Medium → P2, Minor/Low/Nit → P3 or P4; a 90–100 confidence score → P0/P1, 80–89 → P2. The merged
-table uses P0–P4 exclusively — never carry two scales into one table.
+Medium → P2, Minor/Low/Nit → P3 or P4 only after checking the actual consequence against the severity rubric. Never map a confidence score to severity. Confidence describes evidence strength; impact determines P0–P4. Keep confidence in a separate field.
 
 **Fable adjudication pass** (when the escalation gate declared it): after dedup and severity
-normalization but before auto-fixing, spawn one adjudicator over the candidate findings:
+normalization but before reporting findings or applying authorised fixes, spawn one adjudicator over the candidate findings:
 
 ```
 Agent(subagent_type:"general-purpose", name:"adjudicator", description:"Adjudicate review findings", model:"fable",
@@ -306,8 +302,7 @@ through the normal reproduction gate before presenting it as a finding. Note in 
 line that the adjudicator ran and what it changed. If it was declared but fails to run, say so —
 don't silently present unadjudicated findings as adjudicated.
 
-**Fix valid suggestions too**, not just bugs. Only skip suggestions that are clearly out of scope
-or need a major design change.
+**Keep review bounded.** After green in-scope tests, use one review pass and at most one remediation pass. Fix confirmed in-scope defects when authorised; record adjacent suggestions separately. Do not repeat full reviews until every reviewer agrees. Report unresolved acceptance or material-risk blockers.
 
 ## Final review output
 
@@ -316,8 +311,8 @@ run (or coordinator-supplied evidence relied on) and their results. Include the 
 Verification` ledger when Lane F ran. If nothing is confirmed, say "No confirmed findings" first,
 then list **Unverified Risks**.
 
-| Severity | Finding | File | Claim | Repro setup | Expected | Observed | Failure signal | Fix |
-|---|---|---|---|---|---|---|---|---|
+| Severity | Confidence | Finding | File | Claim | Repro setup | Expected | Observed | Failure signal | Fix |
+|---|---|---|---|---|---|---|---|---|---|
 
 The `Severity` column carries only P0–P4 labels (see Severity calibration). A row showing
 Critical/High/Med/Low means a lane's scale wasn't normalized — remap it before presenting.
