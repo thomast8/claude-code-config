@@ -13,26 +13,41 @@
 - **NEVER delete files without asking first.** If a file blocks a commit, fix the issue or ask. Moving to temp is acceptable; `rm` without permission is not.
 
 ## Git Freshness (IMPORTANT)
-- **Before any git operation or PR review, fetch first**: `git fetch --all`, then inspect divergence manually (or pull the current branch). This plain-git path is the default. Graphite is optional and its `gt sync --force` is a dangerous force-pull; see the Graphite section before reaching for it.
+- Before a remote-sensitive change or PR review, verify repository identity, actual base/head and freshness; fetch only the relevant remote when needed. Read-only local git inspection needs no fetch. Only the coordinating agent updates shared remote-tracking refs during multi-worktree work. This plain-git path is the default. Graphite is optional and its `gt sync --force` is a dangerous force-pull; see the Graphite section before reaching for it.
 
 ## PR Review Diff Scope (IMPORTANT)
 - **Always check the PR's actual base branch** with `gh pr view <number> --json baseRefName,headRefName`. Stacked PRs target their parent, so `git diff main...HEAD` would include the whole stack. Correct form: `git diff origin/<baseRefName>...origin/<headRefName>`.
 
+## Completing the requested work
+
+- Extract the outcome, original requests, constraints and existing authorisation from the conversation and linked source. Keep a short acceptance checklist for multi-part work; update it when scope changes and carry it across compaction. Do not make the user restate it or write a formal specification for a routine task.
+- Fill routine gaps using repository evidence. Ask only when the answer changes the outcome, creates a material risk, or needs authority that has not been granted. An approved next step remains approved across updates and phase boundaries.
+- Report progress as observed results and the next unresolved point. Before finishing, account for every acceptance item with implementation evidence, relevant verification, or an explicit blocker. A status question does not cancel the ongoing task.
+- Name the exact system and workflow verified. Baseline smoke checks, feature QA, end-to-end QA, local tests, CI, deployed behaviour and production qualification are distinct evidence. Do not claim one from another. Separate observed facts, inferences and unknowns; refresh mutable sources before relying on them.
+
+
 ## Development Process
 - **Finish approved plans fully.** Once a multi-phase plan is approved (via ExitPlanMode or explicit go-ahead), execute every phase through to completion without pausing to ask permission at each phase boundary. A brief progress update at a natural checkpoint (finishing a phase, a good commit point) is fine; stopping and waiting is not. Only stop when genuinely blocked: missing credentials/access, a decision only the user can make, or an explicit request to pause.
 - **TDD by default** for new functions, bug fixes, behavior changes. Skip for config, docs, migrations, trivial edits.
-- **Find root cause before fixing.** If three fix attempts fail, stop and question the architecture (the built-in `systematic-debugging` skill).
-- **Design first**: for tasks needing design exploration, sketch the approach in 2-3 sentences and align with the user before coding.
+- **Find root cause before fixing.** After one or two failed focused attempts, reassess the approach and explain any scope expansion before further edits.
+- **Design first**: resolve consequential design choices before coding. Infer routine choices from the request and repository; do not turn every sketch into another approval gate.
 - **Real smoke tests over mocks**: when verifying a fix, also run against real objects/providers. Mocks prove wiring matches the test author's mental model, not that the code works against the real wire. Report what actually happened (params, response), not just "tests passed". If real credentials are missing, say so and stop; don't pretend mocks cover it.
 - **Get as close to reality as possible in every verification step.** Passing unit tests with `tmp_path` / mocks / synthetic layouts is a floor, not a ceiling. Before claiming done, *exercise the actual code*: run the real script/binary in the real filesystem, the real git worktree (not a synthesized one), against the real DB, real network call, real CLI invocation. When full prod isn't accessible, write an ad-hoc script that **imports your real modules** and drives them with realistic inputs; this is the middle ground between fixture tests and prod, and it routinely catches what fixture tests miss (default-argument binding, env-var scoping, path resolution, permission quirks, timing, encoding). If the user asks "did you really stress test this?", the answer is only "yes" when the code has been exercised end-to-end against production-like conditions with real objects, not just against a contrived harness.
-- **Don't commit proactively** during ad-hoc work; ask first. When executing a plan, commit at each provisioned checkpoint without asking.
+- For requested implementation, create a feature branch, commit, push and open a ready-for-review PR autonomously within scope after required checks and self-review. Never merge, enable auto-merge or push directly to a protected/default branch without explicit approval. Read-only requests remain read-only.
 - **Run fast linters before committing**, using the project's own lint setup (in uv Python projects typically `uv run ruff check` + `uv run ruff format --check` + `uv run mypy` on the source and test dirs). Catches errors in seconds instead of waiting for a test-heavy pre-commit hook.
-- **Code review before finishing**: invoke `/review-code` and fix all issues before considering the work done.
+- **Review before publishing substantive code/configuration**: finish implementation and in-scope tests, then run one bounded self-review immediately before the first feature-ready push or deployment. Fix confirmed in-scope defects; keep unrelated improvements as follow-up. Use at most one remediation pass, and report unresolved blockers instead of looping to arbitrary reviewer consensus.
 - **Before claiming done**, exercise the change end-to-end. Type checks verify correctness, not completeness.
-- **Handling review comments**: decide if valid. Fix if yes; push back with a reason if no. Never capitulate silently. Fix valid suggestions too, not just bugs; skip only when clearly out of scope.
+- **Handling review comments**: independently verify the claim and impact. Fix valid in-scope defects and acceptance blockers; explain disputed claims and record adjacent suggestions separately. Confidence is not severity.
 - **.env files**: never create or edit. In projects that have a typed settings module (e.g. a Settings class under `src/config/`), change configuration there instead.
 - **Keep changes focused.** Don't sweep across many files; confirm with user before sweeping.
 - **Don't name non-pytest files "test"**.
+
+## Subagents and Model Selection
+- **Always pass an explicit `model` when spawning a subagent.** With no override the agent inherits the session model, so a session running Fable or Opus silently spends a reasoning model on grep work. Decide the model per agent, not per session.
+- **Sonnet for mechanical work**: transcript/log mining, grep-and-classify sweeps, file inventories, running commands and reporting output, test runs, mechanical refactors, doc lookups. This covers most fan-out. Haiku when it is pure extraction against a fixed schema.
+- **Inherit the session model (or set Opus/Fable deliberately) for judgment work**: plan and architecture design, adversarial review, root-cause diagnosis - anything where the reasoning itself is the deliverable. The `fable-planner` agent in plan mode is Fable by design and stays that way.
+- **Same rule inside `Workflow` scripts**: set `opts.model` per stage rather than letting every stage inherit. Cheap finders, extractors and mechanical passes on Sonnet; reserve the session model or higher for the hardest verify/judge/synthesis stages. Set `opts.effort: 'low'` on the mechanical ones too.
+- Do not restart useful work merely to change models; apply the cheaper choice to the next bounded task. Escalate after two failed focused attempts, conflicting evidence or a consequential judgement call. Do not weaken verification to save credits.
 
 ## Tools and Conventions
 - Working inside Zed (editor); Warp (terminal).
@@ -41,7 +56,7 @@
 - **Avoid lint/type suppressions** (`# noqa`, `# type: ignore`, `# nosec`, `# pragma: no cover`). Fix the underlying issue. Only suppress when the tool is genuinely wrong.
 - **Never commit design docs** (`.design/*`); they are local working documents.
 - When invoking skills, use the exact name from the available skills list.
-- **Worktrees**: from a repo shell run `caw` (PR or new-branch picker -> worktree in `${WARP_WORKTREES_DIR:-~/worktrees}/<repo>/<name>` -> Claude); the `claude_worktree` / `claude_pr` tab configs do the same from the `+` menu. Not in a repo -> the launcher prompts for one (recents first). **When you need to start a new feature branch or PR slice mid-session, use `EnterWorktree` (the Claude Code tool), never `git checkout -b`, so the current session directory's branch stays clean and the new work gets an isolated worktree.**
+- **Worktrees**: from a repo shell run `caw` (PR or new-branch picker -> worktree in `${WARP_WORKTREES_DIR:-~/worktrees}/<repo>/<name>` -> Claude); the `claude_worktree` / `claude_pr` tab configs do the same from the `+` menu. Not in a repo -> the launcher prompts for one (recents first). Inspect the current checkout and existing worktrees first. Reuse the worktree already assigned to this task; use `EnterWorktree` when isolation is needed. Create a named feature branch in a managed detached checkout before committing. Preserve unrelated work.
 - Check for an open PR on the current branch before creating a new one.
 
 ## Browser Automation
@@ -78,13 +93,14 @@ See `references/graphite.md` for the full `gt` ↔ raw-git mapping, diverged-bra
 - Tag commits before creating a release: `git tag vX.Y.Z <sha> && git push origin vX.Y.Z`. Never point releases at branch names (they drift as commits land). Verify with `git log --oneline -1 vX.Y.Z`.
 
 ## PR Management (essentials)
-- **Open PRs ready for review**, not as drafts: plain `gh pr create`. Use `--draft` only when I ask for it, or when a project's own convention calls for a placeholder PR.
+- **Open PRs ready for review** using `gh pr create`; use draft status only when explicitly requested.
+- Prefer one coherent shippable PR. Stack only when there is a real dependency and splitting improves review; describe the dependency and use the actual parent base. Do not create stacks merely to separate a helper from its caller. Merging still requires explicit approval.
 - **PR title = squash-commit title**.
 - **PR body** uses Why / What / How / Verification / Notes-Deferred structure (one paragraph each). Reviewer-focused: behavior first, implementation second.
-- **Verification = reviewer-runnable**: the Verification section lists the exact steps a reviewer can copy from the PR branch, smallest real check first (CLI invocation, API call, app flow, DB/state readback); pytest/fixtures are supporting evidence, not the primary steps. Run those exact steps from the pushed branch *before* encoding them, and record observed output/state, not a narrative of what you ran. No opaque heredocs or one-off harnesses; if a step can't run, mark it blocked with the missing dependency rather than faking a pass.
+- **Verification = reviewer-runnable**: the Verification section lists the exact steps a reviewer can copy from the PR branch, smallest real check first (CLI invocation, API call, app flow, DB/state readback); pytest/fixtures are supporting evidence, not the primary steps. Run those exact steps from the feature-ready checkout before publishing the PR and encoding them, and record observed output/state, not a narrative of what you ran. No opaque heredocs or one-off harnesses; if a step can't run, mark it blocked with the missing dependency rather than faking a pass.
 - **PR comment tone**: short, casual, one or two sentences. No bullet points, bold, numbered lists in replies. If it reads AI-written, rewrite.
 - **Never cite commit SHAs in replies**: reviewers can't follow them. Write what changed, not which commit did it.
-- **Echo comment bodies in chat and wait for my approval before posting**, then echo the readback after posting. Draft → approval → post → readback; never draft-and-post in one turn. `gh pr comment` / `gh api` results only show URLs, so the pre-post echo is the only way I can catch a bad reply before it's public, and the post-post readback is the only way to catch silent character-mangling.
+- Once a review comment's fix is implemented and verified, that is standing authorisation to post a concise evidence-backed reply and resolve that exact thread. Read back the posted text and resolution. For disputed, unfixed or unverified comments, or unrelated messages, obtain any missing authorisation before posting; never infer it from permission to implement code.
 - **Never delete a PR's remote head branch** until the new PR is ready. GitHub auto-closes the PR and won't let you reopen it.
 - **After a PR review, update the PR description** to reflect changes made.
 
